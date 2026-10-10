@@ -1,0 +1,32 @@
+# Atom66 priority amendment: key swap and calibration
+
+The user has explicitly changed the initial priority to working key swap and calibration, and requested extensive tests. This amendment supersedes the initial exclusion of calibration and the assumption that the connected board is non-RGB S BLE. Firmware updates and arbitrary raw hardware commands remain excluded.
+
+## Verified live target
+
+On 2026-10-10 Codex used the new CLI only for enumeration, F9 identification and F2 settings read. The connected configuration collection is VID 0483, PID 502a, usage 008c/1, 64-byte unnumbered input/output reports. Exact firmware is `66EC(XRGB)BLe;V1.0.48;V1.0;`. The complete settings stream is three groups and 198 records, successfully parsed and backed up. No configuration or calibration write has been sent.
+
+## Priority behavior
+
+- The user explicitly requests a simple GUI with calibration included. Main views are reassignment/swap and calibration; omit a full advanced macro editor from the initial GUI. Keep backup, save/load and restoration context clear without overwhelming the main operations.
+- The GUI presents key swap as a primary action: explicit From (source) and To (destination) selectors choose two physical keys on a layer. Preview the assignments being exchanged, keep the operation atomic and undoable, then show the concrete write and backup location. A normal single-key remap remains available. The user confirmed this UI on 2026-10-10.
+- Core swap is an atomic profile operation. Indices must be editable, on the same layer, and distinct (same position is a no-op). Both source definitions must be understood. Moving a definition preserves its complete raw representation while rewriting only addressing fields; swapping twice restores original bytes. If either physical position is a normal-layer Fn anchor, exchange the entire two physical columns across all three editable layers and validate both Fn assignments. Unknown records and extra groups stay unchanged. The UI identifies the all-layer effect explicitly.
+- Real F2 evidence contains synchronized normal-layer Fn anchors at physical keys57 and62, plus an additional Right Fn only on alternate layers at key61 (normal assignment Right Alt). Preserve that legitimate asymmetry. Fn validation checks normal-layer anchors and both Fn availability; it must not require every alternate-layer Fn assignment to exist on the normal layer. Linking decisions for edits are based on normal-layer anchors or an explicit new Fn assignment, rather than any incidental alternate-layer Fn.
+- The UI defaults to one-way reassignment (From physical key to output action); a mode choice changes it to two-way swap (From physical key and To physical key). The user explicitly confirmed this default on2026-10-11. Output actions and physical destinations are distinguished in the To selector so the operation is unambiguous.
+- The captured profile contains action bytes178,179,182 whose meanings are unverified. Strict standalone full-profile write validation continues to reject unknown definitions. Baseline-relative validation may retain unknown records byte-for-byte when they are unchanged; it rejects editing, generating or importing changed unknown actions and any changed opaque extra group. Both full structures, exact target identity/firmware/groups and normal Fn anchors are checked. Device transactions and native imports use this differential gate with a genuine current baseline; external legacy imports remain fully strict. Preserving the known hardware's existing unknown bytes is not qualification of those action meanings.
+- Hardware trial is limited to one basic remap or two basic keys swapped, generated exclusively from a live session baseline. No arbitrary external draft bypasses qualification. For the observed XRGB BLE firmware, persistent writes remain explicitly experimental until physical output and persistence are verified. Basic remap/swap qualification must not enable macro, Fn movement, lighting or calibration implicitly.
+- XRGB key-setting writes use the separate F1/F0/F6 configuration transaction and do not send lighting commands. Any claim that lights survive is based on physical evidence only; record and verify the lighting baseline if an established read path permits it.
+- Calibration gets a guided GUI flow with mouse-operated stages, target identification, keys-released instruction, held-key instruction, completion status and cancellation. The mechanism is a dedicated factory calibration protocol, not trigger-depth selection.
+- Calibration command bytes, reply format, eligible firmware family, stage ordering and cleanup behavior require independent static evidence before implementation. The current report from the reference project labels calibration candidate and unvalidated; this must remain visible until hardware evidence exists.
+- Analog calibration values are not contained in F2 key-settings backups. Never present a settings backup as an analog calibration rollback. The user must be able to see whether calibration began, which stages completed, and whether unlock was confirmed or merely sent.
+- A failed or unresolved physical write is not cancellation. No blanket retry, automatic recalibration or competing HID write on a pending send. Dedicated Session ownership and per-device OS locks remain mandatory.
+
+## Review and validation
+
+Before implementation, review this amendment and the final command-level calibration research independently. The preferred LocalGPT and Claude Code MCP capabilities are absent; authorized independent Codex workers are the fallback. Parent Codex verifies source, tests and actual GUI.
+
+Tests cover atomic swap/undo, all layers, linked Fn, raw padding and native/short macro preservation, malformed indices and unknown actions, stale tokens, wrong firmware, backup failure before write, every transport failure point, calibration state transitions and cleanup ordering. Real hardware is never used for malformed input or fault injection. A human must authorize the concrete initial hardware change and operate the released/held calibration stages; software test success alone is not hardware validation.
+
+## Remaining sequencing
+
+Finish independent Task 2 review. Obtain exact calibration evidence and amendment reviews. Implement core swap and dedicated device calibration/trial APIs with tests, then the priority GUI. Build and verify Universal 2 artifacts. Carry forward offline editor, save/import, backup, CLI and thorough tests from the original design.

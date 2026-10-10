@@ -1,0 +1,77 @@
+# NIZ Tools
+
+Atom66 の設定を macOS で読み込み、キー割り当てとキャリブレーションを操作する Rust 製のユーティリティです。Apple Silicon と Intel を含む Universal2 アプリを生成します。
+
+現在の実機で確認した対象は USB 接続の `66EC-XRGB`、VID `0483` / PID `502a`、ファームウェア `66EC(XRGB)BLe;V1.0.48;V1.0;` です。製品名が Atom66 EC-BLE でも、RGB の有無やファームウェアが異なる機種には書き込みを許可しません。Bluetooth 経由の設定通信は未確認です。
+
+## アプリを使う
+
+ビルド後の `dist/NIZ Utility.app` を開き、接続したキーボードを選んで「読み込む」を押します。起動時の一覧取得と設定の読み込みでは、設定変更コマンドを送りません。
+
+- **キー割り当て**: From で変更する位置を、To で出力を選びます。通常は片方向の割り当て変更です。「入れ替え」では同じレイヤーの2つの割り当てを交換します。
+- **草稿**: 変更はまずアプリ内に保持されます。元に戻す・やり直す、JSON 保存、JSON / `.pro` の読み込みに対応します。ファイルを開いただけでは実機に適用されません。
+- **実験的な適用**: 上記の実機と同じ構成について、基本キー1つの変更または2つの交換だけを許可します。変更前に設定と照明を保存し、変更後に両方を読み直して比較します。既定の保存先は `~/Library/Application Support/NIZTools/Backups` です。複数の編集、Fn のある位置、特殊機能、未対応データの変更は拒否します。
+- **反応の調整**: しきい値切替の案内、A の入力確認、マウスで進めるキャリブレーションを表示します。
+
+From の位置番号はレイヤー内で固定です。「現在の割り当て」はキーが今出力する機能を示します。印字と同じとは限りません。未対応の機能は表示し、その元データを保持します。
+
+### A が反応しにくいとき
+
+読み取った実機の設定では、**右 Fn を押しながら 7 を押す**操作にトリガーポイント切替が割り当てられています。キーを離し、A の反応を比較してください。これはキーボード全体の切替です。説明書は高・低の2段階と、電源を切ると既定値に戻ることを記載しています。
+
+現在の段階を取得する USB コマンドや、数値でしきい値を指定する USB コマンドは確認できていません。アプリは現在値や mm 値を推測しません。カスタム設定でショートカットが変更されている場合も、アプリ上の案内を確認してください。
+
+### キャリブレーション
+
+キャリブレーションは通常のしきい値切替とは別の操作です。すべてのキーを離して開始し、応答を待ってから調整したい **A を物理的に押し続け**、マウスで続行します。次の応答後にキーを離して終了します。ソフトウェアで A だけを指定するマスクや、キーの押下を代行する機能はありません。
+
+公式 Windows ユーティリティの静的解析でコマンド列を確認し、模擬通信でエラー・中止・終了処理をテストしています。**この実機でのアナログ調整結果や電源断後の保存は、まだ検証していません。** 設定と照明のバックアップにアナログ校正値は含まれず、校正結果を元に戻す機能はありません。ロック解除の「送信済み」は入力が回復したことの確認ではありません。実行中は他の設定操作を停止し、終了や中止でも通信処理の完了を待ちます。
+
+## 開発とビルド
+
+Rust **1.95 以上**と macOS の Command Line Tools が必要です。開発時に使った Rust は1.98.1です。
+
+```sh
+cargo test --locked --workspace --all-targets
+cargo fmt --all -- --check
+cargo clippy --locked --workspace --all-targets -- -D warnings
+cargo run --locked -p niz-gui -- --demo
+```
+
+`--demo` は実際の HID デバイスを開かない模擬動作です。デモの成功を実機の成功として扱いません。
+
+```sh
+rustup target add aarch64-apple-darwin x86_64-apple-darwin
+./scripts/build-macos.sh
+```
+
+生成物は `dist/NIZ Utility.app`、`dist/NIZ-Utility-universal.zip`、Universal2 CLI `dist/niz` です。最低 macOS バージョンは13.0です。ローカルの ad hoc 署名を付けます。Developer ID 署名や公証は含みません。Intel 向けビルドは Intel 実機での HID 動作を保証するものではありません。
+
+## CLI
+
+CLI は設定取得、バックアップ、差分確認とオフライン編集に対応します。
+
+```sh
+cargo run --locked -p niz-cli -- devices --json
+cargo run --locked -p niz-cli -- info --json
+cargo run --locked -p niz-cli -- backup --directory ./backups
+cargo run --locked -p niz-cli -- inspect ./backups/settings.json --json
+cargo run --locked -p niz-cli -- swap ./backups/settings.json --from-index 30 --to-index 31 --output ./draft.json
+```
+
+CLI のインデックスは **0始まり**で、通常レイヤーは0–65、右 Fn は66–131、左 Fn は132–197です。GUI のレイヤー内位置番号は1始まりです。バックアップの実際のファイル名を `inspect` や `swap` に渡してください。
+
+`apply` / `restore` の通常書き込み資格表は現在空で、未認定の操作を拒否します。明示的な `trial-single-key` / `trial-swap --confirm-trial` は GUI と同じ限定した試験用です。キャリブレーションはキーボードがロックされるため、GUI のマウス操作で進めます。ファームウェア書き換え、任意の生コマンド送信、照明の書き込みは実装していません。
+
+## 検証と調査
+
+- [実機の読み取り記録](docs/validation/2026-10-10-read-only-hardware.md)
+- [トリガーポイント切替の根拠](docs/validation/trigger-threshold-research.md)
+- [校正プロトコルの調査](docs/reverse-engineering/calibration-research.md)
+- [第三者ライセンス](THIRD_PARTY_NOTICES.md)
+
+最終 workspace テストは189件成功しました。CLI は arm64 と Rosetta の x86_64 で起動を確認しています。
+
+テストは64バイトレポート、未対応データの保存、Fn の連動、マクロ継続レコード、バックアップ失敗、通信断、古い応答、校正の中止と解除、GUI の草稿と接続先を扱います。実機では設定198レコードと照明198バイトの読み取りを確認しました。物理的なキー出力、変更の永続保存、実機校正、Bluetooth 通信は別途の実機試験が必要です。
+
+このリポジトリにはメーカーの実行ファイル、DLL、ファームウェア、マニュアルの配布物を含めません。調査に用いた参照プロジェクトとフォントのライセンスは同梱します。

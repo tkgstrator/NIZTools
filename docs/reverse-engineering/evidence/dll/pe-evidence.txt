@@ -1,0 +1,86 @@
+Path: /private/tmp/niz-analysis-20261010/Software/66EC(XRGB)BleHWI.dll Bytes: 66048 SHA256: 1ca6c2141ff2aac1d38c03533ac56a64c27beb9e4e82eae9a1f6c9abf5c108d3
+SECTION .text virtual_size 0x980d RVA 0x1000 raw_size 0x9a00 raw_offset 0x400
+SECTION .rdata virtual_size 0x3a77 RVA 0xb000 raw_size 0x3c00 raw_offset 0x9e00
+SECTION .data virtual_size 0x1f00 RVA 0xf000 raw_size 0xe00 raw_offset 0xda00
+SECTION hookdata virtual_size 0x8 RVA 0x11000 raw_size 0x200 raw_offset 0xe800
+SECTION .rsrc virtual_size 0x1b4 RVA 0x12000 raw_size 0x200 raw_offset 0xea00
+SECTION .reloc virtual_size 0x1474 RVA 0x13000 raw_size 0x1600 raw_offset 0xec00
+IAT 0x1000b0f8 SETUPAPI.dll SetupDiEnumDeviceInfo
+IAT 0x1000b0fc SETUPAPI.dll SetupDiEnumDeviceInterfaces
+IAT 0x1000b100 SETUPAPI.dll SetupDiGetDeviceInterfaceDetailW
+IAT 0x1000b104 SETUPAPI.dll SetupDiGetClassDevsW
+IAT 0x1000b000 HID.DLL HidD_GetHidGuid
+IAT 0x1000b008 KERNEL32.dll GetStringTypeW
+IAT 0x1000b00c KERNEL32.dll TlsAlloc
+IAT 0x1000b010 KERNEL32.dll GetLastError
+IAT 0x1000b014 KERNEL32.dll MultiByteToWideChar
+IAT 0x1000b018 KERNEL32.dll CreateFileW
+IAT 0x1000b01c KERNEL32.dll CloseHandle
+IAT 0x1000b020 KERNEL32.dll WriteFile
+IAT 0x1000b024 KERNEL32.dll ReadFile
+IAT 0x1000b028 KERNEL32.dll Sleep
+IAT 0x1000b02c KERNEL32.dll LCMapStringW
+IAT 0x1000b030 KERNEL32.dll HeapReAlloc
+IAT 0x1000b034 KERNEL32.dll IsValidCodePage
+IAT 0x1000b038 KERNEL32.dll GetOEMCP
+IAT 0x1000b03c KERNEL32.dll HeapFree
+IAT 0x1000b040 KERNEL32.dll HeapAlloc
+IAT 0x1000b044 KERNEL32.dll DecodePointer
+IAT 0x1000b048 KERNEL32.dll EncodePointer
+IAT 0x1000b04c KERNEL32.dll GetCurrentThreadId
+IAT 0x1000b050 KERNEL32.dll GetCommandLineA
+IAT 0x1000b054 KERNEL32.dll RaiseException
+IAT 0x1000b058 KERNEL32.dll TerminateProcess
+IAT 0x1000b05c KERNEL32.dll GetCurrentProcess
+IAT 0x1000b060 KERNEL32.dll UnhandledExceptionFilter
+IAT 0x1000b064 KERNEL32.dll SetUnhandledExceptionFilter
+IAT 0x1000b068 KERNEL32.dll IsDebuggerPresent
+IAT 0x1000b06c KERNEL32.dll IsProcessorFeaturePresent
+IAT 0x1000b070 KERNEL32.dll HeapCreate
+IAT 0x1000b074 KERNEL32.dll HeapDestroy
+IAT 0x1000b078 KERNEL32.dll GetProcAddress
+IAT 0x1000b07c KERNEL32.dll GetModuleHandleW
+IAT 0x1000b080 KERNEL32.dll ExitProcess
+IAT 0x1000b084 KERNEL32.dll GetStdHandle
+IAT 0x1000b088 KERNEL32.dll GetModuleFileNameW
+IAT 0x1000b08c KERNEL32.dll TlsGetValue
+IAT 0x1000b090 KERNEL32.dll TlsSetValue
+IAT 0x1000b094 KERNEL32.dll TlsFree
+IAT 0x1000b098 KERNEL32.dll InterlockedIncrement
+IAT 0x1000b09c KERNEL32.dll SetLastError
+IAT 0x1000b0a0 KERNEL32.dll InterlockedDecrement
+IAT 0x1000b0a4 KERNEL32.dll SetHandleCount
+IAT 0x1000b0a8 KERNEL32.dll InitializeCriticalSectionAndSpinCount
+IAT 0x1000b0ac KERNEL32.dll GetFileType
+IAT 0x1000b0b0 KERNEL32.dll GetStartupInfoW
+IAT 0x1000b0b4 KERNEL32.dll DeleteCriticalSection
+IAT 0x1000b0b8 KERNEL32.dll GetModuleFileNameA
+IAT 0x1000b0bc KERNEL32.dll FreeEnvironmentStringsW
+IAT 0x1000b0c0 KERNEL32.dll WideCharToMultiByte
+IAT 0x1000b0c4 KERNEL32.dll GetEnvironmentStringsW
+IAT 0x1000b0c8 KERNEL32.dll QueryPerformanceCounter
+IAT 0x1000b0cc KERNEL32.dll GetTickCount
+IAT 0x1000b0d0 KERNEL32.dll GetCurrentProcessId
+IAT 0x1000b0d4 KERNEL32.dll GetSystemTimeAsFileTime
+IAT 0x1000b0d8 KERNEL32.dll HeapSize
+IAT 0x1000b0dc KERNEL32.dll LeaveCriticalSection
+IAT 0x1000b0e0 KERNEL32.dll EnterCriticalSection
+IAT 0x1000b0e4 KERNEL32.dll RtlUnwind
+IAT 0x1000b0e8 KERNEL32.dll LoadLibraryW
+IAT 0x1000b0ec KERNEL32.dll GetCPInfo
+IAT 0x1000b0f0 KERNEL32.dll GetACP
+IAT 0x1000b10c USER32.dll SetWindowsHookExW
+IAT 0x1000b110 USER32.dll UnhookWindowsHookEx
+IAT 0x1000b114 USER32.dll PostMessageW
+UTF16 0x1000d3ec raw 0xc1ec '502a'
+UTF16 0x1000d3f8 raw 0xc1f8 '0483'
+UTF16 0x1000d410 raw 0xc210 'vid_'
+UTF16 0x1000d41c raw 0xc21c 'pid_'
+UTF16 0x1000d428 raw 0xc228 'mi_01'
+UTF16 0x1000d434 raw 0xc234 '512a'
+UTF16 0x1000d440 raw 0xc240 '522a'
+VTABLE 0x1000d47c raw 0xc27c ['0x10003bf0', '0x10003c20', '0x10002460']
+VTABLE 0x1000d498 raw 0xc298 ['0x10003bf0', '0x10003c20', '0x1000d918']
+VTABLE 0x1000d098 raw 0xbe98 ['0x10001040', '0x100010d0', '0x222a323a']
+VTABLE 0x1000d4a4 raw 0xc2a4 ['0x10003d50', '0x10003ea0', '0x1000d964']
+VTABLE 0x1000d4b0 raw 0xc2b0 ['0x10004390', '0x10004410', '0x10009a9d']

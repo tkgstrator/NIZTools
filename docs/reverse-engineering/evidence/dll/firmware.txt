@@ -1,0 +1,241 @@
+10003350: 55                           	pushl	%ebp
+10003351: 8b ec                        	movl	%esp, %ebp
+10003353: 81 ec 48 04 00 00            	subl	$0x448, %esp            # imm = 0x448
+10003359: a1 80 f0 00 10               	movl	0x1000f080, %eax
+1000335e: 33 c5                        	xorl	%ebp, %eax
+10003360: 89 45 fc                     	movl	%eax, -0x4(%ebp)
+10003363: 8b 45 08                     	movl	0x8(%ebp), %eax
+10003366: 53                           	pushl	%ebx
+10003367: 56                           	pushl	%esi
+10003368: 8b da                        	movl	%edx, %ebx
+1000336a: 33 f6                        	xorl	%esi, %esi
+1000336c: 89 85 c0 fb ff ff            	movl	%eax, -0x440(%ebp)
+10003372: 89 8d bc fb ff ff            	movl	%ecx, -0x444(%ebp)
+10003378: 3b de                        	cmpl	%esi, %ebx
+1000337a: 0f 84 70 01 00 00            	je	0x100034f0 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x10d0>
+10003380: 39 75 0c                     	cmpl	%esi, 0xc(%ebp)
+10003383: 0f 84 67 01 00 00            	je	0x100034f0 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x10d0>
+10003389: 80 3b 3a                     	cmpb	$0x3a, (%ebx)
+1000338c: 0f 85 5e 01 00 00            	jne	0x100034f0 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x10d0>
+10003392: 8b cb                        	movl	%ebx, %ecx
+10003394: 33 d2                        	xorl	%edx, %edx
+10003396: b0 3a                        	movb	$0x3a, %al
+10003398: 3c 0d                        	cmpb	$0xd, %al
+1000339a: 75 01                        	jne	0x1000339d <?DetectDeviceType@CKB75HWI@@QAEHXZ+0xf7d>
+1000339c: 42                           	incl	%edx
+1000339d: 8a 41 01                     	movb	0x1(%ecx), %al
+100033a0: 41                           	incl	%ecx
+100033a1: 84 c0                        	testb	%al, %al
+100033a3: 75 f3                        	jne	0x10003398 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0xf78>
+100033a5: 89 95 c4 fb ff ff            	movl	%edx, -0x43c(%ebp)
+100033ab: 89 b5 c8 fb ff ff            	movl	%esi, -0x438(%ebp)
+100033b1: 57                           	pushl	%edi
+100033b2: 89 b5 cc fb ff ff            	movl	%esi, -0x434(%ebp)
+100033b8: eb 06                        	jmp	0x100033c0 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0xfa0>
+100033ba: 8d 9b 00 00 00 00            	leal	(%ebx), %ebx
+100033c0: 68 4c d4 00 10               	pushl	$0x1000d44c             # imm = 0x1000D44C
+100033c5: 53                           	pushl	%ebx
+100033c6: e8 e5 17 00 00               	calll	0x10004bb0 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x2790>
+100033cb: 8b f8                        	movl	%eax, %edi
+100033cd: 83 c4 08                     	addl	$0x8, %esp
+100033d0: 8d 95 d0 fb ff ff            	leal	-0x430(%ebp), %edx
+100033d6: 85 ff                        	testl	%edi, %edi
+100033d8: 75 12                        	jne	0x100033ec <?DetectDeviceType@CKB75HWI@@QAEHXZ+0xfcc>
+100033da: 8b c3                        	movl	%ebx, %eax
+100033dc: 2b d3                        	subl	%ebx, %edx
+100033de: 8b ff                        	movl	%edi, %edi
+100033e0: 8a 08                        	movb	(%eax), %cl
+100033e2: 88 0c 02                     	movb	%cl, (%edx,%eax)
+100033e5: 40                           	incl	%eax
+100033e6: 84 c9                        	testb	%cl, %cl
+100033e8: 75 f6                        	jne	0x100033e0 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0xfc0>
+100033ea: eb 17                        	jmp	0x10003403 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0xfe3>
+100033ec: 8b f7                        	movl	%edi, %esi
+100033ee: 2b f3                        	subl	%ebx, %esi
+100033f0: 56                           	pushl	%esi
+100033f1: 53                           	pushl	%ebx
+100033f2: 52                           	pushl	%edx
+100033f3: e8 c8 52 00 00               	calll	0x100086c0 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x62a0>
+100033f8: 83 c4 0c                     	addl	$0xc, %esp
+100033fb: c6 84 35 d0 fb ff ff 00      	movb	$0x0, -0x430(%ebp,%esi)
+10003403: 8d 85 d0 fb ff ff            	leal	-0x430(%ebp), %eax
+10003409: 8d 50 01                     	leal	0x1(%eax), %edx
+1000340c: 8d 64 24 00                  	leal	(%esp), %esp
+10003410: 8a 08                        	movb	(%eax), %cl
+10003412: 40                           	incl	%eax
+10003413: 84 c9                        	testb	%cl, %cl
+10003415: 75 f9                        	jne	0x10003410 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0xff0>
+10003417: 2b c2                        	subl	%edx, %eax
+10003419: 0f 84 a7 00 00 00            	je	0x100034c6 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x10a6>
+1000341f: 80 7f 01 0a                  	cmpb	$0xa, 0x1(%edi)
+10003423: 8d 5f 01                     	leal	0x1(%edi), %ebx
+10003426: 75 01                        	jne	0x10003429 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x1009>
+10003428: 43                           	incl	%ebx
+10003429: 80 bd d0 fb ff ff 3a         	cmpb	$0x3a, -0x430(%ebp)
+10003430: 0f 85 a5 00 00 00            	jne	0x100034db <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x10bb>
+10003436: 8d 85 b8 fb ff ff            	leal	-0x448(%ebp), %eax
+1000343c: 50                           	pushl	%eax
+1000343d: 8d 85 d1 fb ff ff            	leal	-0x42f(%ebp), %eax
+10003443: e8 c8 00 00 00               	calll	0x10003510 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x10f0>
+10003448: 6a 40                        	pushl	$0x40
+1000344a: 8d 4d b9                     	leal	-0x47(%ebp), %ecx
+1000344d: 6a 00                        	pushl	$0x0
+1000344f: 51                           	pushl	%ecx
+10003450: 8b f0                        	movl	%eax, %esi
+10003452: c6 45 b8 00                  	movb	$0x0, -0x48(%ebp)
+10003456: e8 05 50 00 00               	calll	0x10008460 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x6040>
+1000345b: b9 10 00 00 00               	movl	$0x10, %ecx
+10003460: 8d 7d b9                     	leal	-0x47(%ebp), %edi
+10003463: 83 c4 10                     	addl	$0x10, %esp
+10003466: f3 a5                        	rep		movsl	(%esi), %es:(%edi)
+10003468: 8b 8d c0 fb ff ff            	movl	-0x440(%ebp), %ecx
+1000346e: 8b 11                        	movl	(%ecx), %edx
+10003470: 8b 12                        	movl	(%edx), %edx
+10003472: 6a 41                        	pushl	$0x41
+10003474: 8d 45 b8                     	leal	-0x48(%ebp), %eax
+10003477: 50                           	pushl	%eax
+10003478: ff d2                        	calll	*%edx
+1000347a: 84 c0                        	testb	%al, %al
+1000347c: 74 5d                        	je	0x100034db <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x10bb>
+1000347e: 8b 85 c8 fb ff ff            	movl	-0x438(%ebp), %eax
+10003484: 05 96 00 00 00               	addl	$0x96, %eax
+10003489: 89 85 c8 fb ff ff            	movl	%eax, -0x438(%ebp)
+1000348f: 99                           	cltd
+10003490: f7 bd c4 fb ff ff            	idivl	-0x43c(%ebp)
+10003496: 8b f0                        	movl	%eax, %esi
+10003498: 3b b5 cc fb ff ff            	cmpl	-0x434(%ebp), %esi
+1000349e: 0f 8e 1c ff ff ff            	jle	0x100033c0 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0xfa0>
+100034a4: 8b 85 bc fb ff ff            	movl	-0x444(%ebp), %eax
+100034aa: 85 c0                        	testl	%eax, %eax
+100034ac: 0f 84 00 ff ff ff            	je	0x100033b2 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0xf92>
+100034b2: 6a 00                        	pushl	$0x0
+100034b4: 56                           	pushl	%esi
+100034b5: 68 67 04 00 00               	pushl	$0x467                  # imm = 0x467
+100034ba: 50                           	pushl	%eax
+100034bb: ff 15 14 b1 00 10            	calll	*0x1000b114
+100034c1: e9 ec fe ff ff               	jmp	0x100033b2 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0xf92>
+100034c6: 5f                           	popl	%edi
+100034c7: 5e                           	popl	%esi
+100034c8: b0 01                        	movb	$0x1, %al
+100034ca: 5b                           	popl	%ebx
+100034cb: 8b 4d fc                     	movl	-0x4(%ebp), %ecx
+100034ce: 33 cd                        	xorl	%ebp, %ecx
+100034d0: e8 85 10 00 00               	calll	0x1000455a <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x213a>
+100034d5: 8b e5                        	movl	%ebp, %esp
+100034d7: 5d                           	popl	%ebp
+100034d8: c2 08 00                     	retl	$0x8
+100034db: 5f                           	popl	%edi
+100034dc: 5e                           	popl	%esi
+100034dd: 32 c0                        	xorb	%al, %al
+100034df: 5b                           	popl	%ebx
+100034e0: 8b 4d fc                     	movl	-0x4(%ebp), %ecx
+100034e3: 33 cd                        	xorl	%ebp, %ecx
+100034e5: e8 70 10 00 00               	calll	0x1000455a <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x213a>
+100034ea: 8b e5                        	movl	%ebp, %esp
+100034ec: 5d                           	popl	%ebp
+100034ed: c2 08 00                     	retl	$0x8
+100034f0: 8b 4d fc                     	movl	-0x4(%ebp), %ecx
+100034f3: 5e                           	popl	%esi
+100034f4: 33 cd                        	xorl	%ebp, %ecx
+100034f6: 32 c0                        	xorb	%al, %al
+100034f8: 5b                           	popl	%ebx
+100034f9: e8 5c 10 00 00               	calll	0x1000455a <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x213a>
+100034fe: 8b e5                        	movl	%ebp, %esp
+10003500: 5d                           	popl	%ebp
+10003501: c2 08 00                     	retl	$0x8
+10003504: cc                           	int3
+10003505: cc                           	int3
+10003506: cc                           	int3
+10003507: cc                           	int3
+10003508: cc                           	int3
+10003509: cc                           	int3
+1000350a: cc                           	int3
+1000350b: cc                           	int3
+1000350c: cc                           	int3
+1000350d: cc                           	int3
+1000350e: cc                           	int3
+1000350f: cc                           	int3
+10003510: 55                           	pushl	%ebp
+10003511: 8b ec                        	movl	%esp, %ebp
+10003513: 53                           	pushl	%ebx
+10003514: 56                           	pushl	%esi
+10003515: 57                           	pushl	%edi
+10003516: 68 e8 03 00 00               	pushl	$0x3e8                  # imm = 0x3E8
+1000351b: 33 db                        	xorl	%ebx, %ebx
+1000351d: 53                           	pushl	%ebx
+1000351e: 68 d8 09 01 10               	pushl	$0x100109d8             # imm = 0x100109D8
+10003523: 8b f0                        	movl	%eax, %esi
+10003525: bf da 09 01 10               	movl	$0x100109da, %edi       # imm = 0x100109DA
+1000352a: e8 31 4f 00 00               	calll	0x10008460 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x6040>
+1000352f: 66 c7 05 d8 09 01 10 00 3a   	movw	$0x3a00, 0x100109d8     # imm = 0x3A00
+10003538: 8a 0e                        	movb	(%esi), %cl
+1000353a: 83 c4 0c                     	addl	$0xc, %esp
+1000353d: 84 c9                        	testb	%cl, %cl
+1000353f: 0f 84 80 00 00 00            	je	0x100035c5 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x11a5>
+10003545: 8d 56 01                     	leal	0x1(%esi), %edx
+10003548: 80 f9 0a                     	cmpb	$0xa, %cl
+1000354b: 74 78                        	je	0x100035c5 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x11a5>
+1000354d: 43                           	incl	%ebx
+1000354e: 33 c0                        	xorl	%eax, %eax
+10003550: 80 f9 61                     	cmpb	$0x61, %cl
+10003553: 7c 0b                        	jl	0x10003560 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x1140>
+10003555: 80 f9 66                     	cmpb	$0x66, %cl
+10003558: 7f 06                        	jg	0x10003560 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x1140>
+1000355a: 0f be c1                     	movsbl	%cl, %eax
+1000355d: 83 e8 57                     	subl	$0x57, %eax
+10003560: 80 f9 41                     	cmpb	$0x41, %cl
+10003563: 7c 0b                        	jl	0x10003570 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x1150>
+10003565: 80 f9 46                     	cmpb	$0x46, %cl
+10003568: 7f 06                        	jg	0x10003570 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x1150>
+1000356a: 0f be c1                     	movsbl	%cl, %eax
+1000356d: 83 e8 37                     	subl	$0x37, %eax
+10003570: 80 f9 30                     	cmpb	$0x30, %cl
+10003573: 7c 0b                        	jl	0x10003580 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x1160>
+10003575: 80 f9 39                     	cmpb	$0x39, %cl
+10003578: 7f 06                        	jg	0x10003580 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x1160>
+1000357a: 0f be c1                     	movsbl	%cl, %eax
+1000357d: 83 e8 30                     	subl	$0x30, %eax
+10003580: 8a 0a                        	movb	(%edx), %cl
+10003582: c1 e0 04                     	shll	$0x4, %eax
+10003585: 80 f9 61                     	cmpb	$0x61, %cl
+10003588: 7c 0c                        	jl	0x10003596 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x1176>
+1000358a: 80 f9 66                     	cmpb	$0x66, %cl
+1000358d: 7f 07                        	jg	0x10003596 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x1176>
+1000358f: 0f be f1                     	movsbl	%cl, %esi
+10003592: 8d 44 30 a9                  	leal	-0x57(%eax,%esi), %eax
+10003596: 80 f9 41                     	cmpb	$0x41, %cl
+10003599: 7c 0c                        	jl	0x100035a7 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x1187>
+1000359b: 80 f9 46                     	cmpb	$0x46, %cl
+1000359e: 7f 07                        	jg	0x100035a7 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x1187>
+100035a0: 0f be f1                     	movsbl	%cl, %esi
+100035a3: 8d 44 30 c9                  	leal	-0x37(%eax,%esi), %eax
+100035a7: 80 f9 30                     	cmpb	$0x30, %cl
+100035aa: 7c 0c                        	jl	0x100035b8 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x1198>
+100035ac: 80 f9 39                     	cmpb	$0x39, %cl
+100035af: 7f 07                        	jg	0x100035b8 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x1198>
+100035b1: 0f be c9                     	movsbl	%cl, %ecx
+100035b4: 8d 44 08 d0                  	leal	-0x30(%eax,%ecx), %eax
+100035b8: 83 c2 02                     	addl	$0x2, %edx
+100035bb: 88 07                        	movb	%al, (%edi)
+100035bd: 8a 4a ff                     	movb	-0x1(%edx), %cl
+100035c0: 47                           	incl	%edi
+100035c1: 84 c9                        	testb	%cl, %cl
+100035c3: 75 83                        	jne	0x10003548 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x1128>
+100035c5: 8b 55 08                     	movl	0x8(%ebp), %edx
+100035c8: 5f                           	popl	%edi
+100035c9: 83 c3 03                     	addl	$0x3, %ebx
+100035cc: 5e                           	popl	%esi
+100035cd: 89 1a                        	movl	%ebx, (%edx)
+100035cf: b8 d8 09 01 10               	movl	$0x100109d8, %eax       # imm = 0x100109D8
+100035d4: 5b                           	popl	%ebx
+100035d5: 5d                           	popl	%ebp
+100035d6: c3                           	retl
+100035d7: cc                           	int3
+100035d8: cc                           	int3
+100035d9: cc                           	int3
+100035da: cc                           	int3
+100035db: cc                           	int3
+100035dc: cc                           	int3
+100035dd: cc                           	int3
+100035de: cc                           	int3
+100035df: cc                           	int3

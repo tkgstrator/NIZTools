@@ -1,0 +1,13 @@
+[package]
+name = "niz-gui"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+[dependencies]
+niz-core = { path = "../niz-core" }
+niz-device = { path = "../niz-device" }
+eframe.workspace = true
+rfd.workspace = true
+serde_json.workspace = true
+[dev-dependencies]
+tempfile.workspace = true

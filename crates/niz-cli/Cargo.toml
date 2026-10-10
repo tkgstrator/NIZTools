@@ -1,0 +1,15 @@
+[package]
+name = "niz-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+[[bin]]
+name = "niz"
+path = "src/main.rs"
+[dependencies]
+niz-core = { path = "../niz-core" }
+niz-device = { path = "../niz-device" }
+clap.workspace = true
+serde_json.workspace = true
+[dev-dependencies]
+tempfile.workspace = true

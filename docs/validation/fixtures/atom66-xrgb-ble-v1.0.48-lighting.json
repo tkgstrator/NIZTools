@@ -1,0 +1,14 @@
+{
+  "changing_commands_sent": false,
+  "firmware": "66EC(XRGB)BLe;V1.0.48;V1.0;",
+  "groups": 3,
+  "identity": {
+    "product_id": 20522,
+    "usage": 1,
+    "usage_page": 140,
+    "vendor_id": 1155
+  },
+  "lighting_bytes": 198,
+  "lighting_hex": "00ff00ff0000ff0000ff0000ff0000ff0000ff0000ff0000ff0000ff0000ff0000ff0000ff0000ff000000ff0000ff00ff00ffff00ffff00ffff00ffff00ffff00ffff00ffffff00ffff00ffff00ff00ffff00ff00ff0000ff00ff00ffff00ffff00ffff00ffff00ffff00ffff00ffffff00ffff00ffff00ff00ff00ff0000ff00ff00ffff00ffff00ffff00ffff00ffff00ffff00ffffff00ffff00ffff000000ff00ff0000ff0000ffff00ff0000ff00ff00ff00ffff00ff0000ff000000ff0000ff0000ff",
+  "settings_reports": 198
+}

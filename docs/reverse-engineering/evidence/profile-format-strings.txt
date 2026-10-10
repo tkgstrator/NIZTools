@@ -1,0 +1,28 @@
+Extracted EXE UTF-16LE null-terminated profile strings. VMA = raw offset + 0x401a00.
+raw=0x001b3790 vma=0x005b5190 pro(*.pro)|*.pro|All Files(*.*)|*.*||
+raw=0x001b39e4 vma=0x005b53e4 List
+raw=0x001b39f0 vma=0x005b53f0 SizeOfView
+raw=0x001b3a08 vma=0x005b5408 ViewStartAt
+raw=0x001b3a20 vma=0x005b5420 CursorPos
+raw=0x001b3a34 vma=0x005b5434 Cycles
+raw=0x001b3a44 vma=0x005b5444 IsAutoInterval
+raw=0x001b3a64 vma=0x005b5464 PlayMode
+raw=0x001b3a78 vma=0x005b5478 x
+raw=0x001b3a7c vma=0x005b547c ID
+raw=0x001b3a84 vma=0x005b5484 t1
+raw=0x001b3a8c vma=0x005b548c default
+raw=0x001b3ab0 vma=0x005b54b0 PredefinedCombo
+raw=0x001b3ad0 vma=0x005b54d0 PredefinedMacro
+raw=0x001b3af0 vma=0x005b54f0 PredefinedEmu
+raw=0x001b3b0c vma=0x005b550c BackgroundLightSettings
+raw=0x001b3b3c vma=0x005b553c AREA
+raw=0x001b3b48 vma=0x005b5548 Red
+raw=0x001b3b50 vma=0x005b5550 Green
+raw=0x001b3b5c vma=0x005b555c Blue
+raw=0x001b3b68 vma=0x005b5568 CurrentSettings
+raw=0x001b3b88 vma=0x005b5588 KEY
+raw=0x001b3b90 vma=0x005b5590 Level
+raw=0x001b3b9c vma=0x005b559c Mode
+raw=0x001b3ba8 vma=0x005b55a8 HWCode
+raw=0x001b3bb8 vma=0x005b55b8 ComboKey
+raw=0x001b3bd0 vma=0x005b55d0 <?xml version="1.0" encoding="UTF-8"?>\r\n

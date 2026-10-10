@@ -1,0 +1,4 @@
+# Preserve upstream license text and captured diagnostic bytes verbatim.
+assets/fonts/OFL.txt -whitespace
+docs/reverse-engineering/evidence/** -whitespace
+docs/validation/*.log -whitespace

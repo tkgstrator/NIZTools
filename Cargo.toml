@@ -1,0 +1,26 @@
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.95"
+
+[workspace.dependencies]
+anyhow = "1.0"
+thiserror = "2.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10"
+quick-xml = "0.38"
+hidapi = { version = "=2.6.7", features = ["macos-shared-device"] }
+clap = { version = "4", features = ["derive"] }
+eframe = { version = "=0.36.2", default-features = false, features = ["glow", "default_fonts", "x11", "wayland", "accesskit"] }
+tempfile = "3"
+rfd = { version = "=0.17.2", default-features = false }
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+strip = "none"

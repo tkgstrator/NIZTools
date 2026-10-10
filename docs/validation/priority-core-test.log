@@ -1,0 +1,72 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.28s
+     Running unittests src/lib.rs (target/debug/deps/niz_core-c2c830a79edbcaf3)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/core.rs (target/debug/deps/core-885206eff09395b3)
+
+running 31 tests
+test command_keeps_logical_zero_prefix ... ok
+test golden_single_and_repeat_headers ... ok
+test codec_rejects_incomplete_headers_and_invalid_sequences ... ok
+test custom_delays_accept_native_and_short_forms ... ok
+test continuation_header_mismatch_rejected ... ok
+test captures_include_timestamp_metadata ... ok
+test editing_native_macro_retains_opaque_terminal_secondary ... ok
+test editing_short_custom_macro_retains_wire_shape_and_padding ... ok
+test macro_crosses_53_byte_boundary ... ok
+test key_names_and_aliases_use_niz_codes ... ok
+test linked_fn_edit_rejection_is_atomic_when_other_layer_is_uneditable ... ok
+test fn_edits_sync_and_cannot_lose_either_fn ... ok
+test maximum_custom_macro_remains_bounded_and_roundtrips ... ok
+test edit_preserves_unrelated_raw_and_noop_macro ... ok
+test legacy_custom_macro_accepts_empty_item_lists ... ok
+test profile_requires_all_unique_valid_records ... ok
+test unicode_key_input_never_panics_and_arrows_are_accepted ... ok
+test differences_detect_padding_changes ... ok
+test unknown_semantic_code_retained_but_uneditable ... ok
+test legacy_import_and_semantic_merge_preserve_baseline_padding ... ok
+test merge_three_onto_nine_preserves_baseline_metadata_and_extra_groups ... ok
+test legacy_rejects_dtd_duplicates_missing_keys_and_unknown_modes ... ok
+test json_rejects_partial_counters_and_private_identity_fields ... ok
+test xml_declaration_must_be_valid_utf8_leading_and_unique ... ok
+test synthetic_legacy_markers_without_model_cannot_authorize_merge ... ok
+test json_roundtrips_raw_and_rejects_invalid_shape ... ok
+test xml_rejects_duplicate_attributes_entities_sequence_gaps_and_overflow ... ok
+test legacy_source_variant_survives_json_and_rejects_cross_variant_merge ... ok
+test xml_limits_apply_even_to_ignored_metadata ... ok
+test json_rejects_duplicate_fields_invalid_hex_metadata_and_record_sets ... ok
+test macro_transition_matrix_preserves_unrelated_records_padding_and_terminal_fields ... ok
+
+test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.19s
+
+     Running tests/priority.rs (target/debug/deps/priority-a1abc9a7f5edd4c8)
+
+running 16 tests
+test equal_native_macro_semantics_do_not_erase_distinct_opaque_terminal_fields_on_swap ... ok
+test equal_semantics_with_distinct_raw_padding_are_still_swapped ... ok
+test actual_baseline_allows_unrelated_remap_preserving_extra_fn_and_six_opaque_records ... ok
+test linked_swap_readdresses_all_macro_reports_in_each_moved_column ... ok
+test extra_alternate_fn_is_local_when_reassigned_and_exact_noop_does_not_promote_it ... ok
+test native_import_rejects_metadata_mismatch_and_legacy_import_remains_strict ... ok
+test alternate_only_fn_swap_is_layer_local ... ok
+test normal_anchor_removal_rejects_even_with_extra_alternate_fn_and_duplicate_anchor_allows_move ... ok
+test native_import_retains_unchanged_live_opaque_records_and_target_extra_groups ... ok
+test baseline_relative_validator_rejects_any_changed_opaque_source_or_target_or_tail ... ok
+test swap_rejects_invalid_indices_cross_layers_opaque_sources_and_invalid_noops_atomically ... ok
+test baseline_relative_validator_checks_identity_firmware_groups_and_both_fn_structures ... ok
+test linked_swap_checks_all_six_sources_before_committing ... ok
+test ordinary_swaps_each_layer_move_raw_records_only_and_are_involutions ... ok
+test fn_anchor_swaps_exchange_six_records_from_any_selected_layer ... ok
+test raw_macro_swaps_keep_every_continuation_native_short_terminal_and_padding_byte ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+   Doc-tests niz_core
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

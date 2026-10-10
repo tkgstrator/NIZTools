@@ -1,0 +1,195 @@
+
+/private/tmp/niz-analysis-20261010/Software/66EC(XRGB)BleHWI.dll:	file format coff-i386
+Characteristics 0x2102
+	executable
+	32 bit words
+	DLL
+
+Time/Date               Thu Jun 23 16:32:32 2022
+Magic                   010b	(PE32)
+MajorLinkerVersion      10
+MinorLinkerVersion      0
+SizeOfCode              00009a00
+SizeOfInitializedData   00006400
+SizeOfUninitializedData 00000000
+AddressOfEntryPoint     00004eba
+BaseOfCode              00001000
+BaseOfData              0000b000
+ImageBase               10000000
+SectionAlignment        00001000
+FileAlignment           00000200
+MajorOSystemVersion     5
+MinorOSystemVersion     1
+MajorImageVersion       0
+MinorImageVersion       0
+MajorSubsystemVersion   5
+MinorSubsystemVersion   1
+Win32Version            00000000
+SizeOfImage             00015000
+SizeOfHeaders           00000400
+CheckSum                00016861
+Subsystem               00000002	(Windows GUI)
+DllCharacteristics      00000140
+					DYNAMIC_BASE
+					NX_COMPAT
+SizeOfStackReserve      00100000
+SizeOfStackCommit       00001000
+SizeOfHeapReserve       00100000
+SizeOfHeapCommit        00001000
+LoaderFlags             00000000
+NumberOfRvaAndSizes     00000010
+
+The Data Directory
+Entry 0 0000e630 00000447 Export Directory [.edata (or where ever we found it)]
+Entry 1 0000df8c 00000064 Import Directory [parts of .idata]
+Entry 2 00012000 000001b4 Resource Directory [.rsrc]
+Entry 3 00000000 00000000 Exception Directory [.pdata]
+Entry 4 00000000 00000000 Security Directory
+Entry 5 00013000 00000a7c Base Relocation Directory [.reloc]
+Entry 6 0000b150 0000001c Debug Directory
+Entry 7 00000000 00000000 Description Directory
+Entry 8 00000000 00000000 Special Directory
+Entry 9 00000000 00000000 Thread Storage Directory [.tls]
+Entry a 0000d4d8 00000040 Load Configuration Directory
+Entry b 00000000 00000000 Bound Import Directory
+Entry c 0000b000 0000011c Import Address Table Directory
+Entry d 00000000 00000000 Delay Import Directory
+Entry e 00000000 00000000 CLR Runtime Header
+Entry f 00000000 00000000 Reserved
+
+Load configuration:
+  Timestamp: 0
+  Major Version: 0
+  Minor Version: 0
+  GlobalFlags Clear: 0
+  GlobalFlags Set: 0
+  Critical Section Default Timeout: 0
+  Decommit Free Block Threshold: 0
+  Decommit Total Free Threshold: 0
+  Lock Prefix Table: 0
+  Maximum Allocation Size: 0
+  Virtual Memory Threshold: 0
+  Process Affinity Mask: 0
+  Process Heap Flags: 0
+  CSD Version: 0
+  Security Cookie: 268497024
+  SEH Table: 268491264
+  SEH Count: 9
+
+SEH Table: 0x10006800 0x10006fb0 0x100085a0 0x1000957b 0x10009685 0x1000a620 0x1000a6f1 0x1000a7b0 0x1000a7de
+
+
+The Import Tables:
+  lookup 0000e0e8 time 00000000 fwd 00000000 name 0000e17e addr 0000b0f8
+
+    DLL Name: SETUPAPI.dll
+    Hint/Ord  Name
+         286  SetupDiEnumDeviceInfo
+         287  SetupDiEnumDeviceInterfaces
+         324  SetupDiGetDeviceInterfaceDetailW
+         304  SetupDiGetClassDevsW
+
+  lookup 0000dff0 time 00000000 fwd 00000000 name 0000e19e addr 0000b000
+
+    DLL Name: HID.DLL
+    Hint/Ord  Name
+           5  HidD_GetHidGuid
+
+  lookup 0000dff8 time 00000000 fwd 00000000 name 0000e208 addr 0000b008
+
+    DLL Name: KERNEL32.dll
+    Hint/Ord  Name
+         436  GetStringTypeW
+         847  TlsAlloc
+         360  GetLastError
+         615  MultiByteToWideChar
+          82  CreateFileW
+          49  CloseHandle
+         911  WriteFile
+         678  ReadFile
+         834  Sleep
+         567  LCMapStringW
+         527  HeapReAlloc
+         561  IsValidCodePage
+         395  GetOEMCP
+         523  HeapFree
+         517  HeapAlloc
+         121  DecodePointer
+         146  EncodePointer
+         318  GetCurrentThreadId
+         265  GetCommandLineA
+         665  RaiseException
+         842  TerminateProcess
+         315  GetCurrentProcess
+         859  UnhandledExceptionFilter
+         822  SetUnhandledExceptionFilter
+         557  IsDebuggerPresent
+         559  IsProcessorFeaturePresent
+         519  HeapCreate
+         521  HeapDestroy
+         408  GetProcAddress
+         377  GetModuleHandleW
+         182  ExitProcess
+         432  GetStdHandle
+         373  GetModuleFileNameW
+         849  TlsGetValue
+         850  TlsSetValue
+         848  TlsFree
+         544  InterlockedIncrement
+         790  SetLastError
+         540  InterlockedDecrement
+         786  SetHandleCount
+         537  InitializeCriticalSectionAndSpinCount
+         350  GetFileType
+         431  GetStartupInfoW
+         127  DeleteCriticalSection
+         372  GetModuleFileNameA
+         239  FreeEnvironmentStringsW
+         898  WideCharToMultiByte
+         335  GetEnvironmentStringsW
+         660  QueryPerformanceCounter
+         468  GetTickCount
+         316  GetCurrentProcessId
+         448  GetSystemTimeAsFileTime
+         529  HeapSize
+         579  LeaveCriticalSection
+         150  EnterCriticalSection
+         711  RtlUnwind
+         583  LoadLibraryW
+         253  GetCPInfo
+         246  GetACP
+
+  lookup 0000e0fc time 00000000 fwd 00000000 name 0000e250 addr 0000b10c
+
+    DLL Name: USER32.dll
+    Hint/Ord  Name
+         651  SetWindowsHookExW
+         686  UnhookWindowsHookEx
+         512  PostMessageW
+
+Export Table:
+ DLL name: 66EC(XRGB)BleHWI.dll
+ Ordinal base: 1
+ Ordinal      RVA  Name
+       1   0x1c60  ??0CKB75HWI@@QAE@XZ
+       2   0x1c70  ??1CKB75HWI@@QAE@XZ
+       3   0x1340  ??4CKB75HWI@@QAEAAV0@ABV0@@Z
+       4   0x23e0  ?DetectDevice@CKB75HWI@@QAE_NXZ
+       5   0x2420  ?DetectDeviceType@CKB75HWI@@QAEHXZ
+       6   0x13f0  ?InstallHook@@YAXPAUHWND__@@@Z
+       7   0x1380  ?KeyBoardProc@@YGJHIJ@Z
+       8   0x23d0  ?ReadKeyboardVersion@CKB75HWI@@QAE_NPA_W@Z
+       9   0x1420  ?UninstallHook@@YAXXZ
+      10   0x23b0  ?WriteFirmwareToKeyboard@CKB75HWI@@QAE_NPADHPAUHWND__@@@Z
+      11   0x1d20  ?__closeDev@CKB75HWI@@QAE_NXZ
+      12   0x1cc0  ?__createDev@CKB75HWI@@QAE_NXZ
+      13   0x1d70  ?getHardwareVersion@CKB75HWI@@QAEPA_WXZ
+      14   0x2160  ?getKeyConfiguration@CKB75HWI@@QAE_NHHPAHH@Z
+      15   0x22e0  ?getKeyboardLightArea@CKB75HWI@@QAE_NPAH@Z
+      16   0x23f0  ?getPressCounterFromDev@CKB75HWI@@QAE_NPAH@Z
+      17   0x2340  ?prepare@CKB75HWI@@QAE_NXZ
+      18   0x2390  ?readKeyDefinationFromDev@CKB75HWI@@QAE_NPAUHWND__@@@Z
+      19   0x23a0  ?readKeyLightFromDev@CKB75HWI@@QAE_NXZ
+      20   0x1d90  ?setKeyConfiguration@CKB75HWI@@QAE_NHHPAHH@Z
+      21   0x2040  ?setKeyboardLightArea@CKB75HWI@@QAE_NPAH@Z
+      22   0x2380  ?writeKeyConfigurationToDev@CKB75HWI@@QAE_NPAUHWND__@@@Z

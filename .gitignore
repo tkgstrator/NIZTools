@@ -1,0 +1,6 @@
+/target/
+/dist/
+/.superpowers/
+.DS_Store
+/*.zip
+/docs/reverse-engineering/evidence/dll/disassembly.txt

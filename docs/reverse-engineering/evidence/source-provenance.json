@@ -1,0 +1,30 @@
+{
+  "repository": "https://github.com/cbingb666/niz-web",
+  "revision": "395a8f8e46ab677ecf30536c3e756ab7e68c2683",
+  "files": [
+    {
+      "path": "src/protocol.ts",
+      "sha256": "70b1276ed4a3e814577d60ff364bf6cd2f2dcedc87d238f79ba20435a77390e0"
+    },
+    {
+      "path": "src/hid.ts",
+      "sha256": "eea5d5cd859e472ca2777bee365e6226632881864a172b024941363862f8760d"
+    },
+    {
+      "path": "src/devices/atom66/model.ts",
+      "sha256": "a2c0c53c900049fad190149c41f1a1c2c8d888acdee4813e483f4b858293cdd2"
+    },
+    {
+      "path": "src/devices/legacy.ts",
+      "sha256": "99742ca9ba6d5caa942059b2c37add62c95558282286b71500793090453bf3a9"
+    },
+    {
+      "path": "docs/architecture.md",
+      "sha256": "12925c68b94ddf84dc4e27dde6df8960ccf28bd08c3ce2ff25b10922499df7d0"
+    },
+    {
+      "path": "tests/protocol.test.mjs",
+      "sha256": "b94a2f9c88616992fddc439821d5721aebd08a90808f70fe437e88d1755046b9"
+    }
+  ]
+}

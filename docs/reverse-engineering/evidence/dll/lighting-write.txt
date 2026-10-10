@@ -1,0 +1,104 @@
+10002040: 55                           	pushl	%ebp
+10002041: 8b ec                        	movl	%esp, %ebp
+10002043: 81 ec 10 01 00 00            	subl	$0x110, %esp            # imm = 0x110
+10002049: a1 80 f0 00 10               	movl	0x1000f080, %eax
+1000204e: 33 c5                        	xorl	%ebp, %eax
+10002050: 89 45 fc                     	movl	%eax, -0x4(%ebp)
+10002053: 56                           	pushl	%esi
+10002054: 8b 75 08                     	movl	0x8(%ebp), %esi
+10002057: 57                           	pushl	%edi
+10002058: 8b d1                        	movl	%ecx, %edx
+1000205a: 33 c0                        	xorl	%eax, %eax
+1000205c: 8d 64 24 00                  	leal	(%esp), %esp
+10002060: 8a 0c 86                     	movb	(%esi,%eax,4), %cl
+10002063: 88 8c 05 f0 fe ff ff         	movb	%cl, -0x110(%ebp,%eax)
+1000206a: 40                           	incl	%eax
+1000206b: 3d c6 00 00 00               	cmpl	$0xc6, %eax
+10002070: 7c ee                        	jl	0x10002060 <?setKeyboardLightArea@CKB75HWI@@QAE_NPAH@Z+0x20>
+10002072: 8b 7a 04                     	movl	0x4(%edx), %edi
+10002075: 83 c7 0c                     	addl	$0xc, %edi
+10002078: b9 31 00 00 00               	movl	$0x31, %ecx
+1000207d: 8d b5 f0 fe ff ff            	leal	-0x110(%ebp), %esi
+10002083: f3 a5                        	rep		movsl	(%esi), %es:(%edi)
+10002085: 6a 3e                        	pushl	$0x3e
+10002087: 66 a5                        	movsw	(%esi), %es:(%edi)
+10002089: 8b 7a 04                     	movl	0x4(%edx), %edi
+1000208c: 8d 55 bb                     	leal	-0x45(%ebp), %edx
+1000208f: 6a 00                        	pushl	$0x0
+10002091: 52                           	pushl	%edx
+10002092: 66 c7 45 b8 00 00            	movw	$0x0, -0x48(%ebp)
+10002098: c6 45 ba e1                  	movb	$-0x1f, -0x46(%ebp)
+1000209c: e8 bf 63 00 00               	calll	0x10008460 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x6040>
+100020a1: 8b 4f 04                     	movl	0x4(%edi), %ecx
+100020a4: 8b 01                        	movl	(%ecx), %eax
+100020a6: 8b 00                        	movl	(%eax), %eax
+100020a8: 83 c4 0c                     	addl	$0xc, %esp
+100020ab: 6a 41                        	pushl	$0x41
+100020ad: 8d 55 b8                     	leal	-0x48(%ebp), %edx
+100020b0: 52                           	pushl	%edx
+100020b1: ff d0                        	calll	*%eax
+100020b3: 84 c0                        	testb	%al, %al
+100020b5: 0f 84 90 00 00 00            	je	0x1000214b <?setKeyboardLightArea@CKB75HWI@@QAE_NPAH@Z+0x10b>
+100020bb: 33 f6                        	xorl	%esi, %esi
+100020bd: 53                           	pushl	%ebx
+100020be: 8b ff                        	movl	%edi, %edi
+100020c0: bb ca 00 00 00               	movl	$0xca, %ebx
+100020c5: 2b de                        	subl	%esi, %ebx
+100020c7: 83 fb 41                     	cmpl	$0x41, %ebx
+100020ca: 76 05                        	jbe	0x100020d1 <?setKeyboardLightArea@CKB75HWI@@QAE_NPAH@Z+0x91>
+100020cc: bb 41 00 00 00               	movl	$0x41, %ebx
+100020d1: 6a 41                        	pushl	$0x41
+100020d3: 8d 4d b8                     	leal	-0x48(%ebp), %ecx
+100020d6: 6a 00                        	pushl	$0x0
+100020d8: 51                           	pushl	%ecx
+100020d9: e8 82 63 00 00               	calll	0x10008460 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x6040>
+100020de: 8d 43 fc                     	leal	-0x4(%ebx), %eax
+100020e1: 8d 53 fc                     	leal	-0x4(%ebx), %edx
+100020e4: 50                           	pushl	%eax
+100020e5: 8d 4c 37 0c                  	leal	0xc(%edi,%esi), %ecx
+100020e9: 88 55 bb                     	movb	%dl, -0x45(%ebp)
+100020ec: 51                           	pushl	%ecx
+100020ed: 8d 55 bc                     	leal	-0x44(%ebp), %edx
+100020f0: 52                           	pushl	%edx
+100020f1: 66 c7 45 b8 00 00            	movw	$0x0, -0x48(%ebp)
+100020f7: c6 45 ba e0                  	movb	$-0x20, -0x46(%ebp)
+100020fb: e8 c0 65 00 00               	calll	0x100086c0 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x62a0>
+10002100: 8b 4f 04                     	movl	0x4(%edi), %ecx
+10002103: 8b 01                        	movl	(%ecx), %eax
+10002105: 8b 00                        	movl	(%eax), %eax
+10002107: 83 c4 18                     	addl	$0x18, %esp
+1000210a: 6a 41                        	pushl	$0x41
+1000210c: 8d 55 b8                     	leal	-0x48(%ebp), %edx
+1000210f: 52                           	pushl	%edx
+10002110: 8d 74 1e fc                  	leal	-0x4(%esi,%ebx), %esi
+10002114: ff d0                        	calll	*%eax
+10002116: 84 c0                        	testb	%al, %al
+10002118: 74 30                        	je	0x1000214a <?setKeyboardLightArea@CKB75HWI@@QAE_NPAH@Z+0x10a>
+1000211a: 81 fe c6 00 00 00            	cmpl	$0xc6, %esi
+10002120: 7c 9e                        	jl	0x100020c0 <?setKeyboardLightArea@CKB75HWI@@QAE_NPAH@Z+0x80>
+10002122: 6a 41                        	pushl	$0x41
+10002124: 8d 4d b8                     	leal	-0x48(%ebp), %ecx
+10002127: 68 e6 00 00 00               	pushl	$0xe6
+1000212c: 51                           	pushl	%ecx
+1000212d: e8 2e 63 00 00               	calll	0x10008460 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x6040>
+10002132: 8b 7f 04                     	movl	0x4(%edi), %edi
+10002135: 83 c4 0c                     	addl	$0xc, %esp
+10002138: c6 45 b8 00                  	movb	$0x0, -0x48(%ebp)
+1000213c: 8b 17                        	movl	(%edi), %edx
+1000213e: 8b 12                        	movl	(%edx), %edx
+10002140: 6a 41                        	pushl	$0x41
+10002142: 8d 45 b8                     	leal	-0x48(%ebp), %eax
+10002145: 50                           	pushl	%eax
+10002146: 8b cf                        	movl	%edi, %ecx
+10002148: ff d2                        	calll	*%edx
+1000214a: 5b                           	popl	%ebx
+1000214b: 8b 4d fc                     	movl	-0x4(%ebp), %ecx
+1000214e: 5f                           	popl	%edi
+1000214f: 33 cd                        	xorl	%ebp, %ecx
+10002151: b0 01                        	movb	$0x1, %al
+10002153: 5e                           	popl	%esi
+10002154: e8 01 24 00 00               	calll	0x1000455a <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x213a>
+10002159: 8b e5                        	movl	%ebp, %esp
+1000215b: 5d                           	popl	%ebp
+1000215c: c2 04 00                     	retl	$0x4
+1000215f: cc                           	int3

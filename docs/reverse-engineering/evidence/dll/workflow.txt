@@ -1,0 +1,392 @@
+10001860: 55                           	pushl	%ebp
+10001861: 8b ec                        	movl	%esp, %ebp
+10001863: 83 ec 6c                     	subl	$0x6c, %esp
+10001866: a1 80 f0 00 10               	movl	0x1000f080, %eax
+1000186b: 33 c5                        	xorl	%ebp, %eax
+1000186d: 89 45 fc                     	movl	%eax, -0x4(%ebp)
+10001870: 8b 45 08                     	movl	0x8(%ebp), %eax
+10001873: 56                           	pushl	%esi
+10001874: 57                           	pushl	%edi
+10001875: 8b f9                        	movl	%ecx, %edi
+10001877: 6a 3e                        	pushl	$0x3e
+10001879: 33 f6                        	xorl	%esi, %esi
+1000187b: 8d 4d bb                     	leal	-0x45(%ebp), %ecx
+1000187e: 56                           	pushl	%esi
+1000187f: 51                           	pushl	%ecx
+10001880: 89 7d 9c                     	movl	%edi, -0x64(%ebp)
+10001883: 89 45 94                     	movl	%eax, -0x6c(%ebp)
+10001886: 66 c7 45 b8 00 00            	movw	$0x0, -0x48(%ebp)
+1000188c: c6 45 ba f1                  	movb	$-0xf, -0x46(%ebp)
+10001890: e8 cb 6b 00 00               	calll	0x10008460 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x6040>
+10001895: 8b 4f 04                     	movl	0x4(%edi), %ecx
+10001898: 8b 11                        	movl	(%ecx), %edx
+1000189a: 8b 12                        	movl	(%edx), %edx
+1000189c: 83 c4 0c                     	addl	$0xc, %esp
+1000189f: 6a 41                        	pushl	$0x41
+100018a1: 8d 45 b8                     	leal	-0x48(%ebp), %eax
+100018a4: 50                           	pushl	%eax
+100018a5: ff d2                        	calll	*%edx
+100018a7: 84 c0                        	testb	%al, %al
+100018a9: 75 12                        	jne	0x100018bd <?UninstallHook@@YAXXZ+0x49d>
+100018ab: 5f                           	popl	%edi
+100018ac: 5e                           	popl	%esi
+100018ad: 8b 4d fc                     	movl	-0x4(%ebp), %ecx
+100018b0: 33 cd                        	xorl	%ebp, %ecx
+100018b2: e8 a3 2c 00 00               	calll	0x1000455a <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x213a>
+100018b7: 8b e5                        	movl	%ebp, %esp
+100018b9: 5d                           	popl	%ebp
+100018ba: c2 04 00                     	retl	$0x4
+100018bd: 89 75 a8                     	movl	%esi, -0x58(%ebp)
+100018c0: 89 75 b0                     	movl	%esi, -0x50(%ebp)
+100018c3: 89 75 a4                     	movl	%esi, -0x5c(%ebp)
+100018c6: 53                           	pushl	%ebx
+100018c7: 8b 45 b0                     	movl	-0x50(%ebp), %eax
+100018ca: 33 db                        	xorl	%ebx, %ebx
+100018cc: 89 5d a0                     	movl	%ebx, -0x60(%ebp)
+100018cf: 89 45 ac                     	movl	%eax, -0x54(%ebp)
+100018d2: 8b 57 08                     	movl	0x8(%edi), %edx
+100018d5: 8b 45 ac                     	movl	-0x54(%ebp), %eax
+100018d8: 8b 4d a4                     	movl	-0x5c(%ebp), %ecx
+100018db: 8b 34 10                     	movl	(%eax,%edx), %esi
+100018de: 03 cb                        	addl	%ebx, %ecx
+100018e0: 89 4d 98                     	movl	%ecx, -0x68(%ebp)
+100018e3: 85 f6                        	testl	%esi, %esi
+100018e5: 0f 84 a8 00 00 00            	je	0x10001993 <?UninstallHook@@YAXXZ+0x573>
+100018eb: 8b 16                        	movl	(%esi), %edx
+100018ed: 8b 12                        	movl	(%edx), %edx
+100018ef: 6a 00                        	pushl	$0x0
+100018f1: 8d 45 b4                     	leal	-0x4c(%ebp), %eax
+100018f4: 50                           	pushl	%eax
+100018f5: 6a 40                        	pushl	$0x40
+100018f7: 6a 00                        	pushl	$0x0
+100018f9: 8b ce                        	movl	%esi, %ecx
+100018fb: ff d2                        	calll	*%edx
+100018fd: 8b 7d b4                     	movl	-0x4c(%ebp), %edi
+10001900: 57                           	pushl	%edi
+10001901: e8 16 32 00 00               	calll	0x10004b1c <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x26fc>
+10001906: 8b d8                        	movl	%eax, %ebx
+10001908: 83 c4 04                     	addl	$0x4, %esp
+1000190b: 85 db                        	testl	%ebx, %ebx
+1000190d: 0f 84 56 01 00 00            	je	0x10001a69 <?UninstallHook@@YAXXZ+0x649>
+10001913: 57                           	pushl	%edi
+10001914: 6a 00                        	pushl	$0x0
+10001916: 53                           	pushl	%ebx
+10001917: e8 44 6b 00 00               	calll	0x10008460 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x6040>
+1000191c: 8b 06                        	movl	(%esi), %eax
+1000191e: 8b 10                        	movl	(%eax), %edx
+10001920: 83 c4 0c                     	addl	$0xc, %esp
+10001923: 6a 00                        	pushl	$0x0
+10001925: 8d 4d b4                     	leal	-0x4c(%ebp), %ecx
+10001928: 51                           	pushl	%ecx
+10001929: 6a 40                        	pushl	$0x40
+1000192b: 53                           	pushl	%ebx
+1000192c: 8b ce                        	movl	%esi, %ecx
+1000192e: ff d2                        	calll	*%edx
+10001930: 8b 45 b4                     	movl	-0x4c(%ebp), %eax
+10001933: 8b fb                        	movl	%ebx, %edi
+10001935: 85 c0                        	testl	%eax, %eax
+10001937: 74 49                        	je	0x10001982 <?UninstallHook@@YAXXZ+0x562>
+10001939: 8d a4 24 00 00 00 00         	leal	(%esp), %esp
+10001940: be 40 00 00 00               	movl	$0x40, %esi
+10001945: 83 f8 40                     	cmpl	$0x40, %eax
+10001948: 77 02                        	ja	0x1000194c <?UninstallHook@@YAXXZ+0x52c>
+1000194a: 8b f0                        	movl	%eax, %esi
+1000194c: 56                           	pushl	%esi
+1000194d: 8d 45 b9                     	leal	-0x47(%ebp), %eax
+10001950: 57                           	pushl	%edi
+10001951: 50                           	pushl	%eax
+10001952: e8 69 6d 00 00               	calll	0x100086c0 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x62a0>
+10001957: 8b 4d 9c                     	movl	-0x64(%ebp), %ecx
+1000195a: 8b 49 04                     	movl	0x4(%ecx), %ecx
+1000195d: 8b 11                        	movl	(%ecx), %edx
+1000195f: 8b 12                        	movl	(%edx), %edx
+10001961: 83 c4 0c                     	addl	$0xc, %esp
+10001964: 6a 41                        	pushl	$0x41
+10001966: 8d 45 b8                     	leal	-0x48(%ebp), %eax
+10001969: 50                           	pushl	%eax
+1000196a: ff d2                        	calll	*%edx
+1000196c: 84 c0                        	testb	%al, %al
+1000196e: 0f 84 ec 00 00 00            	je	0x10001a60 <?UninstallHook@@YAXXZ+0x640>
+10001974: 8b 45 b4                     	movl	-0x4c(%ebp), %eax
+10001977: 2b c6                        	subl	%esi, %eax
+10001979: 03 fe                        	addl	%esi, %edi
+1000197b: 89 45 b4                     	movl	%eax, -0x4c(%ebp)
+1000197e: 85 c0                        	testl	%eax, %eax
+10001980: 75 be                        	jne	0x10001940 <?UninstallHook@@YAXXZ+0x520>
+10001982: 53                           	pushl	%ebx
+10001983: e8 5a 31 00 00               	calll	0x10004ae2 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x26c2>
+10001988: 8b 5d a0                     	movl	-0x60(%ebp), %ebx
+1000198b: 8b 7d 9c                     	movl	-0x64(%ebp), %edi
+1000198e: 83 c4 04                     	addl	$0x4, %esp
+10001991: eb 45                        	jmp	0x100019d8 <?UninstallHook@@YAXXZ+0x5b8>
+10001993: 6a 41                        	pushl	$0x41
+10001995: 8d 45 b8                     	leal	-0x48(%ebp), %eax
+10001998: 6a 00                        	pushl	$0x0
+1000199a: 50                           	pushl	%eax
+1000199b: e8 c0 6a 00 00               	calll	0x10008460 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x6040>
+100019a0: 8a 4d a8                     	movb	-0x58(%ebp), %cl
+100019a3: fe c1                        	incb	%cl
+100019a5: 88 4d bb                     	movb	%cl, -0x45(%ebp)
+100019a8: 8b 4f 04                     	movl	0x4(%edi), %ecx
+100019ab: 83 c4 0c                     	addl	$0xc, %esp
+100019ae: 8d 53 01                     	leal	0x1(%ebx), %edx
+100019b1: 88 55 bc                     	movb	%dl, -0x44(%ebp)
+100019b4: 66 c7 45 b8 00 00            	movw	$0x0, -0x48(%ebp)
+100019ba: c6 45 ba f0                  	movb	$-0x10, -0x46(%ebp)
+100019be: 66 c7 45 bd 00 00            	movw	$0x0, -0x43(%ebp)
+100019c4: 8b 01                        	movl	(%ecx), %eax
+100019c6: 8b 00                        	movl	(%eax), %eax
+100019c8: 6a 41                        	pushl	$0x41
+100019ca: 8d 55 b8                     	leal	-0x48(%ebp), %edx
+100019cd: 52                           	pushl	%edx
+100019ce: ff d0                        	calll	*%eax
+100019d0: 84 c0                        	testb	%al, %al
+100019d2: 0f 84 91 00 00 00            	je	0x10001a69 <?UninstallHook@@YAXXZ+0x649>
+100019d8: 8b 45 94                     	movl	-0x6c(%ebp), %eax
+100019db: 85 c0                        	testl	%eax, %eax
+100019dd: 74 12                        	je	0x100019f1 <?UninstallHook@@YAXXZ+0x5d1>
+100019df: 8b 4d 98                     	movl	-0x68(%ebp), %ecx
+100019e2: 6a 00                        	pushl	$0x0
+100019e4: 51                           	pushl	%ecx
+100019e5: 68 67 04 00 00               	pushl	$0x467                  # imm = 0x467
+100019ea: 50                           	pushl	%eax
+100019eb: ff 15 14 b1 00 10            	calll	*0x1000b114
+100019f1: 83 45 ac 04                  	addl	$0x4, -0x54(%ebp)
+100019f5: 43                           	incl	%ebx
+100019f6: 89 5d a0                     	movl	%ebx, -0x60(%ebp)
+100019f9: 83 fb 42                     	cmpl	$0x42, %ebx
+100019fc: 0f 8c d0 fe ff ff            	jl	0x100018d2 <?UninstallHook@@YAXXZ+0x4b2>
+10001a02: 8b 45 a4                     	movl	-0x5c(%ebp), %eax
+10001a05: ff 45 a8                     	incl	-0x58(%ebp)
+10001a08: 81 45 b0 08 01 00 00         	addl	$0x108, -0x50(%ebp)     # imm = 0x108
+10001a0f: 83 c0 42                     	addl	$0x42, %eax
+10001a12: 89 45 a4                     	movl	%eax, -0x5c(%ebp)
+10001a15: 3d c6 00 00 00               	cmpl	$0xc6, %eax
+10001a1a: 0f 8c a7 fe ff ff            	jl	0x100018c7 <?UninstallHook@@YAXXZ+0x4a7>
+10001a20: 6a 3f                        	pushl	$0x3f
+10001a22: 8d 55 ba                     	leal	-0x46(%ebp), %edx
+10001a25: 68 f6 00 00 00               	pushl	$0xf6
+10001a2a: 52                           	pushl	%edx
+10001a2b: 66 c7 45 b8 00 00            	movw	$0x0, -0x48(%ebp)
+10001a31: e8 2a 6a 00 00               	calll	0x10008460 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x6040>
+10001a36: 8b 4f 04                     	movl	0x4(%edi), %ecx
+10001a39: 8b 01                        	movl	(%ecx), %eax
+10001a3b: 8b 00                        	movl	(%eax), %eax
+10001a3d: 83 c4 0c                     	addl	$0xc, %esp
+10001a40: 6a 41                        	pushl	$0x41
+10001a42: 8d 55 b8                     	leal	-0x48(%ebp), %edx
+10001a45: 52                           	pushl	%edx
+10001a46: ff d0                        	calll	*%eax
+10001a48: 5b                           	popl	%ebx
+10001a49: 84 c0                        	testb	%al, %al
+10001a4b: 5f                           	popl	%edi
+10001a4c: 0f 95 c0                     	setne	%al
+10001a4f: 5e                           	popl	%esi
+10001a50: 8b 4d fc                     	movl	-0x4(%ebp), %ecx
+10001a53: 33 cd                        	xorl	%ebp, %ecx
+10001a55: e8 00 2b 00 00               	calll	0x1000455a <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x213a>
+10001a5a: 8b e5                        	movl	%ebp, %esp
+10001a5c: 5d                           	popl	%ebp
+10001a5d: c2 04 00                     	retl	$0x4
+10001a60: 53                           	pushl	%ebx
+10001a61: e8 7c 30 00 00               	calll	0x10004ae2 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x26c2>
+10001a66: 83 c4 04                     	addl	$0x4, %esp
+10001a69: 8b 4d fc                     	movl	-0x4(%ebp), %ecx
+10001a6c: 5b                           	popl	%ebx
+10001a6d: 5f                           	popl	%edi
+10001a6e: 33 cd                        	xorl	%ebp, %ecx
+10001a70: 32 c0                        	xorb	%al, %al
+10001a72: 5e                           	popl	%esi
+10001a73: e8 e2 2a 00 00               	calll	0x1000455a <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x213a>
+10001a78: 8b e5                        	movl	%ebp, %esp
+10001a7a: 5d                           	popl	%ebp
+10001a7b: c2 04 00                     	retl	$0x4
+10001a7e: cc                           	int3
+10001a7f: cc                           	int3
+10001a80: 55                           	pushl	%ebp
+10001a81: 8b ec                        	movl	%esp, %ebp
+10001a83: 81 ec 8c 00 00 00            	subl	$0x8c, %esp
+10001a89: a1 80 f0 00 10               	movl	0x1000f080, %eax
+10001a8e: 33 c5                        	xorl	%ebp, %eax
+10001a90: 89 45 fc                     	movl	%eax, -0x4(%ebp)
+10001a93: 53                           	pushl	%ebx
+10001a94: 33 db                        	xorl	%ebx, %ebx
+10001a96: 6a 3e                        	pushl	$0x3e
+10001a98: 8d 85 7b ff ff ff            	leal	-0x85(%ebp), %eax
+10001a9e: 53                           	pushl	%ebx
+10001a9f: 50                           	pushl	%eax
+10001aa0: 66 89 9d 78 ff ff ff         	movw	%bx, -0x88(%ebp)
+10001aa7: c6 85 7a ff ff ff e2         	movb	$-0x1e, -0x86(%ebp)
+10001aae: e8 ad 69 00 00               	calll	0x10008460 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x6040>
+10001ab3: 8b 4e 04                     	movl	0x4(%esi), %ecx
+10001ab6: 8b 11                        	movl	(%ecx), %edx
+10001ab8: 8b 12                        	movl	(%edx), %edx
+10001aba: 83 c4 0c                     	addl	$0xc, %esp
+10001abd: 6a 41                        	pushl	$0x41
+10001abf: 8d 85 78 ff ff ff            	leal	-0x88(%ebp), %eax
+10001ac5: 50                           	pushl	%eax
+10001ac6: ff d2                        	calll	*%edx
+10001ac8: 84 c0                        	testb	%al, %al
+10001aca: 75 0f                        	jne	0x10001adb <?UninstallHook@@YAXXZ+0x6bb>
+10001acc: 5b                           	popl	%ebx
+10001acd: 8b 4d fc                     	movl	-0x4(%ebp), %ecx
+10001ad0: 33 cd                        	xorl	%ebp, %ecx
+10001ad2: e8 83 2a 00 00               	calll	0x1000455a <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x213a>
+10001ad7: 8b e5                        	movl	%ebp, %esp
+10001ad9: 5d                           	popl	%ebp
+10001ada: c3                           	retl
+10001adb: 8b 4e 04                     	movl	0x4(%esi), %ecx
+10001ade: 57                           	pushl	%edi
+10001adf: 68 a0 86 01 00               	pushl	$0x186a0                # imm = 0x186A0
+10001ae4: 8d 95 74 ff ff ff            	leal	-0x8c(%ebp), %edx
+10001aea: 52                           	pushl	%edx
+10001aeb: c7 85 74 ff ff ff 40 00 00 00	movl	$0x40, -0x8c(%ebp)
+10001af5: 8b 01                        	movl	(%ecx), %eax
+10001af7: 8b 40 04                     	movl	0x4(%eax), %eax
+10001afa: 8d 55 bc                     	leal	-0x44(%ebp), %edx
+10001afd: 52                           	pushl	%edx
+10001afe: ff d0                        	calll	*%eax
+10001b00: 84 c0                        	testb	%al, %al
+10001b02: 74 41                        	je	0x10001b45 <?UninstallHook@@YAXXZ+0x725>
+10001b04: 8a 45 bd                     	movb	-0x43(%ebp), %al
+10001b07: 3c e6                        	cmpb	$-0x1a, %al
+10001b09: 74 4c                        	je	0x10001b57 <?UninstallHook@@YAXXZ+0x737>
+10001b0b: 3c e0                        	cmpb	$-0x20, %al
+10001b0d: 75 18                        	jne	0x10001b27 <?UninstallHook@@YAXXZ+0x707>
+10001b0f: 0f b6 7d be                  	movzbl	-0x42(%ebp), %edi
+10001b13: 57                           	pushl	%edi
+10001b14: 8d 4d bf                     	leal	-0x41(%ebp), %ecx
+10001b17: 51                           	pushl	%ecx
+10001b18: 8d 54 1e 0c                  	leal	0xc(%esi,%ebx), %edx
+10001b1c: 52                           	pushl	%edx
+10001b1d: e8 9e 6b 00 00               	calll	0x100086c0 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x62a0>
+10001b22: 83 c4 0c                     	addl	$0xc, %esp
+10001b25: 03 df                        	addl	%edi, %ebx
+10001b27: 8b 4e 04                     	movl	0x4(%esi), %ecx
+10001b2a: 8b 01                        	movl	(%ecx), %eax
+10001b2c: 8b 40 04                     	movl	0x4(%eax), %eax
+10001b2f: 68 a0 86 01 00               	pushl	$0x186a0                # imm = 0x186A0
+10001b34: 8d 95 74 ff ff ff            	leal	-0x8c(%ebp), %edx
+10001b3a: 52                           	pushl	%edx
+10001b3b: 8d 55 bc                     	leal	-0x44(%ebp), %edx
+10001b3e: 52                           	pushl	%edx
+10001b3f: ff d0                        	calll	*%eax
+10001b41: 84 c0                        	testb	%al, %al
+10001b43: 75 bf                        	jne	0x10001b04 <?UninstallHook@@YAXXZ+0x6e4>
+10001b45: 5f                           	popl	%edi
+10001b46: 32 c0                        	xorb	%al, %al
+10001b48: 5b                           	popl	%ebx
+10001b49: 8b 4d fc                     	movl	-0x4(%ebp), %ecx
+10001b4c: 33 cd                        	xorl	%ebp, %ecx
+10001b4e: e8 07 2a 00 00               	calll	0x1000455a <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x213a>
+10001b53: 8b e5                        	movl	%ebp, %esp
+10001b55: 5d                           	popl	%ebp
+10001b56: c3                           	retl
+10001b57: 8b 4d fc                     	movl	-0x4(%ebp), %ecx
+10001b5a: 5f                           	popl	%edi
+10001b5b: 33 cd                        	xorl	%ebp, %ecx
+10001b5d: b0 01                        	movb	$0x1, %al
+10001b5f: 5b                           	popl	%ebx
+10001b60: e8 f5 29 00 00               	calll	0x1000455a <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x213a>
+10001b65: 8b e5                        	movl	%ebp, %esp
+10001b67: 5d                           	popl	%ebp
+10001b68: c3                           	retl
+10001b69: cc                           	int3
+10001b6a: cc                           	int3
+10001b6b: cc                           	int3
+10001b6c: cc                           	int3
+10001b6d: cc                           	int3
+10001b6e: cc                           	int3
+10001b6f: cc                           	int3
+10001b70: 55                           	pushl	%ebp
+10001b71: 8b ec                        	movl	%esp, %ebp
+10001b73: 81 ec 8c 00 00 00            	subl	$0x8c, %esp
+10001b79: a1 80 f0 00 10               	movl	0x1000f080, %eax
+10001b7e: 33 c5                        	xorl	%ebp, %eax
+10001b80: 89 45 fc                     	movl	%eax, -0x4(%ebp)
+10001b83: 53                           	pushl	%ebx
+10001b84: 33 db                        	xorl	%ebx, %ebx
+10001b86: 6a 3e                        	pushl	$0x3e
+10001b88: 8d 85 7b ff ff ff            	leal	-0x85(%ebp), %eax
+10001b8e: 53                           	pushl	%ebx
+10001b8f: 50                           	pushl	%eax
+10001b90: 66 89 9d 78 ff ff ff         	movw	%bx, -0x88(%ebp)
+10001b97: c6 85 7a ff ff ff e3         	movb	$-0x1d, -0x86(%ebp)
+10001b9e: e8 bd 68 00 00               	calll	0x10008460 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x6040>
+10001ba3: 8b 4e 04                     	movl	0x4(%esi), %ecx
+10001ba6: 8b 11                        	movl	(%ecx), %edx
+10001ba8: 8b 12                        	movl	(%edx), %edx
+10001baa: 83 c4 0c                     	addl	$0xc, %esp
+10001bad: 6a 41                        	pushl	$0x41
+10001baf: 8d 85 78 ff ff ff            	leal	-0x88(%ebp), %eax
+10001bb5: 50                           	pushl	%eax
+10001bb6: ff d2                        	calll	*%edx
+10001bb8: 84 c0                        	testb	%al, %al
+10001bba: 75 0f                        	jne	0x10001bcb <?UninstallHook@@YAXXZ+0x7ab>
+10001bbc: 5b                           	popl	%ebx
+10001bbd: 8b 4d fc                     	movl	-0x4(%ebp), %ecx
+10001bc0: 33 cd                        	xorl	%ebp, %ecx
+10001bc2: e8 93 29 00 00               	calll	0x1000455a <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x213a>
+10001bc7: 8b e5                        	movl	%ebp, %esp
+10001bc9: 5d                           	popl	%ebp
+10001bca: c3                           	retl
+10001bcb: 8b 4e 04                     	movl	0x4(%esi), %ecx
+10001bce: 57                           	pushl	%edi
+10001bcf: 68 a0 86 01 00               	pushl	$0x186a0                # imm = 0x186A0
+10001bd4: 8d 95 74 ff ff ff            	leal	-0x8c(%ebp), %edx
+10001bda: 52                           	pushl	%edx
+10001bdb: c7 85 74 ff ff ff 40 00 00 00	movl	$0x40, -0x8c(%ebp)
+10001be5: 8b 01                        	movl	(%ecx), %eax
+10001be7: 8b 40 04                     	movl	0x4(%eax), %eax
+10001bea: 8d 55 bc                     	leal	-0x44(%ebp), %edx
+10001bed: 52                           	pushl	%edx
+10001bee: ff d0                        	calll	*%eax
+10001bf0: 84 c0                        	testb	%al, %al
+10001bf2: 74 44                        	je	0x10001c38 <?UninstallHook@@YAXXZ+0x818>
+10001bf4: 8a 45 bd                     	movb	-0x43(%ebp), %al
+10001bf7: 3c e6                        	cmpb	$-0x1a, %al
+10001bf9: 74 4f                        	je	0x10001c4a <?UninstallHook@@YAXXZ+0x82a>
+10001bfb: 3c e3                        	cmpb	$-0x1d, %al
+10001bfd: 75 1b                        	jne	0x10001c1a <?UninstallHook@@YAXXZ+0x7fa>
+10001bff: 0f b6 7d be                  	movzbl	-0x42(%ebp), %edi
+10001c03: 57                           	pushl	%edi
+10001c04: 8d 4d bf                     	leal	-0x41(%ebp), %ecx
+10001c07: 51                           	pushl	%ecx
+10001c08: 8d 94 1e d4 00 00 00         	leal	0xd4(%esi,%ebx), %edx
+10001c0f: 52                           	pushl	%edx
+10001c10: e8 ab 6a 00 00               	calll	0x100086c0 <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x62a0>
+10001c15: 83 c4 0c                     	addl	$0xc, %esp
+10001c18: 03 df                        	addl	%edi, %ebx
+10001c1a: 8b 4e 04                     	movl	0x4(%esi), %ecx
+10001c1d: 8b 01                        	movl	(%ecx), %eax
+10001c1f: 8b 40 04                     	movl	0x4(%eax), %eax
+10001c22: 68 a0 86 01 00               	pushl	$0x186a0                # imm = 0x186A0
+10001c27: 8d 95 74 ff ff ff            	leal	-0x8c(%ebp), %edx
+10001c2d: 52                           	pushl	%edx
+10001c2e: 8d 55 bc                     	leal	-0x44(%ebp), %edx
+10001c31: 52                           	pushl	%edx
+10001c32: ff d0                        	calll	*%eax
+10001c34: 84 c0                        	testb	%al, %al
+10001c36: 75 bc                        	jne	0x10001bf4 <?UninstallHook@@YAXXZ+0x7d4>
+10001c38: 5f                           	popl	%edi
+10001c39: 32 c0                        	xorb	%al, %al
+10001c3b: 5b                           	popl	%ebx
+10001c3c: 8b 4d fc                     	movl	-0x4(%ebp), %ecx
+10001c3f: 33 cd                        	xorl	%ebp, %ecx
+10001c41: e8 14 29 00 00               	calll	0x1000455a <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x213a>
+10001c46: 8b e5                        	movl	%ebp, %esp
+10001c48: 5d                           	popl	%ebp
+10001c49: c3                           	retl
+10001c4a: 8b 4d fc                     	movl	-0x4(%ebp), %ecx
+10001c4d: 5f                           	popl	%edi
+10001c4e: 33 cd                        	xorl	%ebp, %ecx
+10001c50: b0 01                        	movb	$0x1, %al
+10001c52: 5b                           	popl	%ebx
+10001c53: e8 02 29 00 00               	calll	0x1000455a <?DetectDeviceType@CKB75HWI@@QAEHXZ+0x213a>
+10001c58: 8b e5                        	movl	%ebp, %esp
+10001c5a: 5d                           	popl	%ebp
+10001c5b: c3                           	retl
+10001c5c: cc                           	int3
+10001c5d: cc                           	int3
+10001c5e: cc                           	int3
+10001c5f: cc                           	int3

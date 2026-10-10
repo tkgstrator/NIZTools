@@ -1,0 +1,232 @@
+[
+  {
+    "archive": "Atom66 EC-BLE RGB-20261010T132556Z-1-001.zip",
+    "archive_sha256": "c2deec4aa5fca49a3edff3c9b264f6e33368be577af3115269d60f7264e8a723",
+    "entries": [
+      {
+        "path": "Atom66 EC-BLE RGB/2019.1 update/66EC(XRGB)BLe_V1.0.25_20190121.bin",
+        "size": 138462,
+        "sha256": "0c8986e4ed8f4becbd3c6ca593f34894ba85151a48be8f7048fcee377d720f1a"
+      },
+      {
+        "path": "Atom66 EC-BLE RGB/2022.8/66EC(XRGB)BLe_V1.2.6_20220627.bin",
+        "size": 158708,
+        "sha256": "01c44c01f2d789704d64f2b381fd1e344646eaf2519d3ad43f893d1fb291a5c6"
+      },
+      {
+        "path": "Atom66 EC-BLE RGB/2019.8 update/66EC(XRGB)BLe_V1.0.40_20190830.bin",
+        "size": 141695,
+        "sha256": "6c50c0cdfcda4193b01c8baed267a9c2223ab8d1bc9b07fee7a693902e601a27"
+      },
+      {
+        "path": "Atom66 EC-BLE RGB/2019.4 update/66EC(XRGB)BLe_V1.0.26REV_20190402.bin",
+        "size": 139665,
+        "sha256": "4461fb58f3b23b2bdff8303bdaee7029ce73de6f9164fedca6c21bb9ea421513"
+      },
+      {
+        "path": "Atom66 EC-BLE RGB/2018 update/66EC(XRGB)BLe_V1.0.16_20180705.bin",
+        "size": 136660,
+        "sha256": "b5ff6d844915dfb6277dca61940da1669885f6e530b1f2baa57e5a47e0d40f17"
+      },
+      {
+        "path": "Atom66 EC-BLE RGB/2018 update/66EC(XRGB)BLe_V1.0.40_20190830.bin",
+        "size": 141695,
+        "sha256": "6c50c0cdfcda4193b01c8baed267a9c2223ab8d1bc9b07fee7a693902e601a27"
+      },
+      {
+        "path": "Atom66 EC-BLE RGB/2020.11 update/66EC(XRGB)BLe_V1.0.48_20200810[1].bin",
+        "size": 140529,
+        "sha256": "878d2f6193d4da310da2762c35a1e1c1f25eeb5eb648f9159e917f9266e2f989"
+      },
+      {
+        "path": "Atom66 EC-BLE RGB/2023.6/66EC(RGB)BLe_V1.5.1_20230520.bin",
+        "size": 177576,
+        "sha256": "b5dca0a3de1f36778c4ce5deb41d019d95221f654ef783ff6b837553092397fa"
+      },
+      {
+        "path": "Atom66 EC-BLE RGB/2020.7 update/66EC(XRGB)BLe_V1.0.47_20200507.bin",
+        "size": 139983,
+        "sha256": "e365a2345ea58066d48e0b7c6dae340538dc2424ce9290bb873028fe314ffccd"
+      },
+      {
+        "path": "Atom66 EC-BLE RGB/2020.12 update/66EC(XRGB)BLe_V1.1.7_20201210.bin",
+        "size": 145283,
+        "sha256": "351c7f648be5d77040d7d5c4240dc4572d7786f2f285f771b9914690e863720f"
+      },
+      {
+        "path": "Atom66 EC-BLE RGB/2021.04 update/66EC(XRGB)BLe_V1.1.9_20210307.bin",
+        "size": 145246,
+        "sha256": "83cc5482b32d1071d2fbf6e351ad213f3ff35baa85af5a3e710b1fc0b446344b"
+      },
+      {
+        "path": "Atom66 EC-BLE RGB/2020.04 update/66EC(XRGB)BLe_V1.0.45_20200311.bin",
+        "size": 141907,
+        "sha256": "2dabf4916933dfb575994447550b2724c76e2272c821bd3a6340f5e9f66ce8ea"
+      }
+    ]
+  },
+  {
+    "archive": "Atom66 EC-BLE-20261010T132525Z-1-001.zip",
+    "archive_sha256": "f2ed5e032561dfc6922afd2cd5a04a9513f82afdefdb1bf3809c7a0999eef2fa",
+    "entries": [
+      {
+        "path": "Atom66 EC-BLE/2019.1 update/66EC(S)BLe_V1.0.25_20190121.bin",
+        "size": 108978,
+        "sha256": "e46a0a56e29ab60841c603cd97945d97e4c55285d44140b4d14a4625befe06a9"
+      },
+      {
+        "path": "Atom66 EC-BLE/2018 update/66EC(S)BLe_V1.0.15_20180530.bin",
+        "size": 112529,
+        "sha256": "144022d8c292135d0f9195b006b0d0fa47d920d5581cc2cc1f7d95f32e0d1630"
+      },
+      {
+        "path": "Atom66 EC-BLE/2020.11 update/66EC(S)BLe_V1.1.6_20201121.bin",
+        "size": 113695,
+        "sha256": "e25aca3327a7c2f092fe87faa4c30523d4f284ee06bf7ce61a4eaf3bfe043cf1"
+      },
+      {
+        "path": "Atom66 EC-BLE/2019.8 update/66EC(S)BLe_V1.0.40_20190830.bin",
+        "size": 112333,
+        "sha256": "2740c2afa10f7b7ab5e3a541790926b29c1bfdb12d561db8d5d7055592dde9c6"
+      },
+      {
+        "path": "Atom66 EC-BLE/2020.04 update/66EC(S)BLe_V1.0.45_20200311.bin",
+        "size": 112227,
+        "sha256": "d053ed5e419ea7dea91c2fcf0bf57bd6f447878e672d575af513959981402b0a"
+      },
+      {
+        "path": "Atom66 EC-BLE/2020.7 update/66EC(S)BLe_V1.0.47_20200507.bin",
+        "size": 110319,
+        "sha256": "f873cbadca5651f0b09b5360111e2c948759da2f0acd8ee4118497fe14737ca3"
+      },
+      {
+        "path": "Atom66 EC-BLE/2019.4 update/66EC(S)BLe_V1.0.26REV_20190402.bin",
+        "size": 110054,
+        "sha256": "382837ad40ba9ca5dbe8b64680e2b5c99472f864cfad68256ae292dd21af349b"
+      },
+      {
+        "path": "Atom66 EC-BLE/2020.12 update/66EC(S)BLe_V1.1.7_20201210.bin",
+        "size": 113695,
+        "sha256": "2b575be4eb6c2df989e6adc2150168c0fffd9979e0416669d509dc06d7210c33"
+      },
+      {
+        "path": "Atom66 EC-BLE/2023.6/66EC(S)BLe_V1.4.1_20230520.bin",
+        "size": 136289,
+        "sha256": "5765f0710e257e8c6cf790b8ddd53e9ab7274fbedb206708fee0f6f13a5e6199"
+      },
+      {
+        "path": "Atom66 EC-BLE/2022.8/66EC(S)BLe_V1.2.6_20220627.bin",
+        "size": 123622,
+        "sha256": "6a6ea744619b89ea5dbb15c12a40875cbcfef2b45335c77ced295ec2a6382fb0"
+      },
+      {
+        "path": "Atom66 EC-BLE/2021.04 update/66EC(S)BLe_V1.1.9_20210307.bin",
+        "size": 113711,
+        "sha256": "6f3db9893e78f54da96194c59dfa38bb16f6527962927106e58944a7da8a652b"
+      }
+    ]
+  },
+  {
+    "archive": "Atom66 EC-S-20261010T132554Z-1-001.zip",
+    "archive_sha256": "2e8e14b8a2119ffb74c935fe5b779035de46a24b442f78387d086c9b385277ad",
+    "entries": [
+      {
+        "path": "Atom66 EC-S/2020.7 update/66EC(S)_V1.0.45_20200311.bin",
+        "size": 97954,
+        "sha256": "842db2ec38cd29a5b56c034c91cf6a59bacf869deb4dc776a55bcc9929573054"
+      },
+      {
+        "path": "Atom66 EC-S/2020.11 update/66EC(S)_V1.0.45_20200311[1].bin",
+        "size": 97954,
+        "sha256": "842db2ec38cd29a5b56c034c91cf6a59bacf869deb4dc776a55bcc9929573054"
+      },
+      {
+        "path": "Atom66 EC-S/2020.04 update/66EC(S)_V1.0.45_20200311.bin",
+        "size": 97954,
+        "sha256": "842db2ec38cd29a5b56c034c91cf6a59bacf869deb4dc776a55bcc9929573054"
+      },
+      {
+        "path": "Atom66 EC-S/2019.4 update/66EC(S)_V1.0.26REV_20190402.bin",
+        "size": 96682,
+        "sha256": "a9f07a2488cffc5ac174efe4f04ac0d7b5361bfa911c62bc7d40ddeda25db4e7"
+      },
+      {
+        "path": "Atom66 EC-S/2019.1 update/66EC(S)_V1.0.25_20190121.bin",
+        "size": 95940,
+        "sha256": "8f4da456b345ee09b47b0261a4c1905f21bb54ac4cb0d56d2b97f3ceab8349b9"
+      },
+      {
+        "path": "Atom66 EC-S/2020.12 update/66EC(S)_V1.1.4_20201110.bin",
+        "size": 96470,
+        "sha256": "cde705aa213afdd75eb4c144acc6c5926c68846270d5dbf1be17e4208cf5f8d4"
+      },
+      {
+        "path": "Atom66 EC-S/2023.6/66EC(S)_V1.4.1_20230520.bin",
+        "size": 114718,
+        "sha256": "d7b961633fc4ebe973cc29020418a216e7acea0b6dceddf068cc987faaf2f0a2"
+      },
+      {
+        "path": "Atom66 EC-S/2019.8 update/66EC(S)_V1.0.40_20190830.bin",
+        "size": 97758,
+        "sha256": "8cc8ad31d11f625afc5f2b8a6bf2551e7112c3ee0660a3c40942fd3307a379a2"
+      },
+      {
+        "path": "Atom66 EC-S/2018 update/66EC(S)_V1.0.15_20180530.bin",
+        "size": 100355,
+        "sha256": "c190b3fe2eb8e93f32e5b017aa714b41e0434934f358f13db9b9e3768cf62d70"
+      },
+      {
+        "path": "Atom66 EC-S/2022.8/66EC(S)_V1.1.8_20220505.bin",
+        "size": 103005,
+        "sha256": "ae9ce5523c7c103197cb306ef325479d7750306b6d36366f748aeb366b0bca86"
+      },
+      {
+        "path": "Atom66 EC-S/2021.04 update/66EC(S)_V1.1.6_20210307.bin",
+        "size": 95956,
+        "sha256": "26ab176ae5db693bfbbdc9b28095959ed916a6a75970b16118834396371f49fc"
+      }
+    ]
+  },
+  {
+    "archive": "Software-20261010T132552Z-1-001.zip",
+    "archive_sha256": "3f1f54a8c939a02531949be0b606005144e8b27f9467b0334077840466babf33",
+    "entries": [
+      {
+        "path": "Software/66EC(XRGB)BleHWI.dll",
+        "size": 66048,
+        "sha256": "1ca6c2141ff2aac1d38c03533ac56a64c27beb9e4e82eae9a1f6c9abf5c108d3"
+      },
+      {
+        "path": "Software/66EC(XRGB)Ble.exe",
+        "size": 2447872,
+        "sha256": "3189ce0a95911b7cbeffd6a15092f38af490aa8bf2d90115453d11f401974555"
+      },
+      {
+        "path": "Software/66EC(XRGB)BleRES.dll",
+        "size": 52477440,
+        "sha256": "b50d437ca7f1a491702e91947ab8892cfbfb66f12a70a2fdcdd18376e03a9393"
+      }
+    ]
+  },
+  {
+    "archive": "User Manual-20261010T132557Z-1-001.zip",
+    "archive_sha256": "436ff16998042c6c1fc0ac2e382f1356a353d9ba9665c0ee9a48b21823137ad7",
+    "entries": [
+      {
+        "path": "User Manual/66EC(S) User Manual.doc",
+        "size": 460288,
+        "sha256": "0dab546c18993b5b249b71a00cf6bb6031dfd696f68212b571b3fbc7dd115884"
+      },
+      {
+        "path": "User Manual/66EC(XRGB)Ble User Manual.doc",
+        "size": 751104,
+        "sha256": "e07495d4a738e1b26d6b5fb6e4194b39594d3cc17d2b946875e1d6ae4fbffbea"
+      },
+      {
+        "path": "User Manual/66EC(S)Ble User Manual.doc",
+        "size": 483328,
+        "sha256": "cf4ca07698e3da209e7982ae4f79c10691b10e5e9eccb58775b8d8dbbb867377"
+      }
+    ]
+  }
+]
