@@ -114,6 +114,16 @@ impl Session {
         outcome: Option<String>,
     ) {
         let timestamp_ms = self.io.now_ms();
+        if self.sensitivity_active()
+            && let Some(status) = self.sensitivity.as_mut()
+        {
+            status.trace.push(PacketTrace {
+                direction,
+                timestamp_ms,
+                bytes: bytes.clone(),
+                outcome: outcome.clone(),
+            });
+        }
         if let Some(run) = self.calibration.as_mut()
             && !matches!(
                 run.status.phase,

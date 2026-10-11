@@ -141,13 +141,7 @@ enum Commands {
     },
 }
 fn err(message: impl Into<String>) -> Error {
-    Error {
-        message: message.into(),
-        raw_reports: vec![],
-        began_write: false,
-        backup_path: None,
-        calibration: None,
-    }
+    Error::new(message)
 }
 fn json(v: &serde_json::Value) -> Result<()> {
     println!(
@@ -584,13 +578,10 @@ mod diagnostic_tests {
         raw[2] = 1;
         raw[3] = 10;
         raw[63] = 0xa5;
-        let error = Error {
-            message: "readback byte mismatch, including opaque/unmodified bytes".into(),
-            raw_reports: vec![raw.clone()],
-            began_write: true,
-            backup_path: Some(dir.path().join("original.json")),
-            calibration: None,
-        };
+        let mut error = Error::new("readback byte mismatch, including opaque/unmodified bytes");
+        error.raw_reports = vec![raw.clone()];
+        error.began_write = true;
+        error.backup_path = Some(dir.path().join("original.json"));
         let result: Result<()> = capture_error(Err(error), Some(&path));
         assert!(result.is_err());
         let json: serde_json::Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();

@@ -56,6 +56,13 @@ impl Backend for Fake {
             "No analog fixture in this legacy fake".to_string(),
         ))
     }
+    fn adjust_sensitivity(
+        &mut self,
+        _: &Path,
+        _: u8,
+    ) -> Result<niz_device::SensitivityStatus, Failure> {
+        panic!("legacy fake does not support sensitivity")
+    }
     fn trial(&mut self, s: Selection, _: &Path) -> Result<Response, Failure> {
         self.trial.push(s);
         Ok(Response::Applied {

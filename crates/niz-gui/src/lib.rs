@@ -6,3 +6,5 @@ pub mod keyboard;
 pub mod protocol;
 mod theme;
 pub mod worker;
+
+mod sensitivity_ui;

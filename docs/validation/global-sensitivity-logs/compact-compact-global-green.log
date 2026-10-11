@@ -1,0 +1,14 @@
+    Blocking waiting for file lock on build directory
+   Compiling niz-gui v0.1.0 (/Users/devonly/Developer/personal/NIZ/crates/niz-gui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.41s
+     Running unittests src/lib.rs (target/debug/deps/niz_gui-ef2579533dad9ba6)
+
+running 5 tests
+test sensitivity_ui::tests::panel_is_compact_and_collapsed_by_default ... ok
+test app::tests::compact_input_test_only_renders_the_keyboard_and_tracks_key_release ... ok
+test app::tests::compact_threshold_global_result_uses_current_selected_from_to ... ok
+test app::tests::compact_threshold_values_share_vertical_center_and_manual_snapshot ... ok
+test app::tests::compact_threshold_result_only_shows_selected_from_to_and_actions ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 65 filtered out; finished in 1.53s
+

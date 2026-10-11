@@ -3,7 +3,9 @@ use crate::{
     protocol::*,
 };
 use niz_core::Profile;
-use niz_device::{CalibrationPhase, CalibrationStatus, RawThresholds, supports_raw_thresholds};
+use niz_device::{
+    CalibrationPhase, CalibrationStatus, RawThresholds, SensitivityStatus, supports_raw_thresholds,
+};
 use std::{
     path::PathBuf,
     sync::{
@@ -52,6 +54,7 @@ pub struct Controller<P: Port> {
     pub pending: Option<Ticket>,
     pub live: bool,
     pub calibration: Option<CalibrationStatus>,
+    pub sensitivity: Option<SensitivityStatus>,
     pub cancel: Arc<AtomicBool>,
     pub message: String,
     pub close_requested: bool,
@@ -75,6 +78,7 @@ impl<P: Port> Controller<P> {
             pending: None,
             live: false,
             calibration: None,
+            sensitivity: None,
             cancel: Arc::new(AtomicBool::new(false)),
             message: String::new(),
             close_requested: false,
@@ -133,6 +137,7 @@ impl<P: Port> Controller<P> {
                 .find(|d| &d.path == path)
                 .map(Target::from),
             Command::ReadRawThresholds
+            | Command::AdjustSensitivity { .. }
             | Command::Trial { .. }
             | Command::Begin { .. }
             | Command::BeginHeld { .. }
@@ -173,6 +178,7 @@ impl<P: Port> Controller<P> {
         if self.selected_path.as_ref() != Some(&path) {
             self.raw_thresholds = None;
             self.calibration = None;
+            self.sensitivity = None;
             self.selected_path = Some(path);
             self.live = false;
             self.message="デバイスを切り替えました。編集内容は保持しています。選択したデバイスを読み込んでください。".into();
@@ -190,6 +196,7 @@ impl<P: Port> Controller<P> {
         {
             self.selected_path = None;
             self.calibration = None;
+            self.sensitivity = None;
             self.live = false;
             self.message="選択したデバイスが見つかりません。編集内容は保持しています。接続を確認して読み込んでください。".into();
         }
@@ -199,6 +206,7 @@ impl<P: Port> Controller<P> {
             .is_some_and(|target| !devices.iter().any(|d| Target::from(d) == *target))
         {
             self.calibration = None;
+            self.sensitivity = None;
             self.live = false;
         }
         self.devices = devices;
@@ -258,8 +266,13 @@ impl<P: Port> Controller<P> {
         self.raw_thresholds = None;
         self.failure = None;
         self.dispatch(Command::ReadRawThresholds, None)?;
-        self.message = "Reading the normal-scan raw threshold snapshot.".into();
+        self.message = "しきい値を読み込み中".into();
         Ok(())
+    }
+    pub fn sensitivity_pending(&self) -> bool {
+        self.operation
+            .as_ref()
+            .is_some_and(|op| matches!(op.command, Command::AdjustSensitivity { .. }))
     }
     pub fn raw_thresholds_pending(&self) -> bool {
         self.operation
@@ -295,6 +308,7 @@ impl<P: Port> Controller<P> {
             );
         }
         self.raw_thresholds = None;
+        self.sensitivity = None;
         self.dispatch(
             Command::Trial {
                 draft: a.draft,
@@ -316,6 +330,7 @@ impl<P: Port> Controller<P> {
         self.selected_path = Some(path.clone());
         self.raw_thresholds = None;
         self.calibration = None;
+        self.sensitivity = None;
         self.generation += 1;
         self.live = false;
         self.dispatch(Command::Read { path }, Some(choice))
@@ -323,6 +338,44 @@ impl<P: Port> Controller<P> {
     pub fn trial(&mut self, backup: PathBuf) -> Result<(), String> {
         let approval = self.prepare_trial(backup)?;
         self.approve_trial(approval)
+    }
+    pub fn adjust_sensitivity(
+        &mut self,
+        backup: PathBuf,
+        coefficient: u8,
+        activation: Activation,
+    ) -> Result<(), String> {
+        self.available()?;
+        if activation != Activation::Pointer {
+            return Err("Sensitivity requires a mouse or trackpad click".into());
+        }
+        if !(10..=40).contains(&coefficient) {
+            return Err("Sensitivity coefficient must be in 10..40".into());
+        }
+        let target = self.changing_target()?;
+        let baseline = &self.editor.as_ref().ok_or("No profile")?.baseline;
+        if target.identity != baseline.identity
+            || !supports_raw_thresholds(&baseline.identity, &baseline.firmware)
+            || baseline.group_count() != 3
+        {
+            return Err("Sensitivity requires the exact fresh XRGB V1.0.48 baseline".into());
+        }
+        self.cancel.store(false, Ordering::Release);
+        self.cancel_requested = false;
+        self.dispatch(
+            Command::AdjustSensitivity {
+                backup,
+                coefficient,
+            },
+            None,
+        )?;
+        self.raw_thresholds = None;
+        self.sensitivity = None;
+        self.calibration = None;
+        self.failure = None;
+        self.live = false;
+        self.message = "全体の反応を適用中…".into();
+        Ok(())
     }
     pub fn begin(&mut self, backup: PathBuf, a: Activation) -> Result<(), String> {
         self.prepare_calibration(a)?;
@@ -374,6 +427,7 @@ impl<P: Port> Controller<P> {
         self.cancel_requested = false;
         self.failure = None;
         self.calibration = None;
+        self.sensitivity = None;
         Ok(())
     }
     fn stage(&self, phase: CalibrationPhase, a: Activation) -> Result<(), String> {
@@ -426,6 +480,14 @@ impl<P: Port> Controller<P> {
         } else if self.pending.is_none() {
             self.ready_close = true;
         } else {
+            if self
+                .operation
+                .as_ref()
+                .is_some_and(|op| matches!(op.command, Command::AdjustSensitivity { .. }))
+            {
+                self.cancel.store(true, Ordering::Release);
+                self.cancel_requested = true;
+            }
             self.message = "Waiting for the device operation to return before closing.".into();
         }
     }
@@ -457,6 +519,24 @@ impl<P: Port> Controller<P> {
                     .collect();
             }
             self.failure = Some(failure);
+            if self.close_requested {
+                self.ready_close = true;
+            }
+            return;
+        }
+        let sensitivity_reply = matches!(event.response, Response::Sensitivity(_));
+        let sensitivity_command = matches!(op.command, Command::AdjustSensitivity { .. });
+        if (sensitivity_reply && !sensitivity_command)
+            || (sensitivity_command
+                && !sensitivity_reply
+                && !matches!(event.response, Response::Error(_)))
+        {
+            self.sensitivity = None;
+            self.live = false;
+            self.message =
+                "Unexpected response for the owned sensitivity operation; read the device again."
+                    .into();
+            self.failure = Some(Failure::from(self.message.clone()));
             if self.close_requested {
                 self.ready_close = true;
             }
@@ -497,8 +577,8 @@ impl<P: Port> Controller<P> {
                         baseline: baseline.unwrap().clone(),
                     });
                     self.message = match source {
-                        RawThresholdSource::Device => "Read normal-scan raw threshold snapshot. Values are internal signal units, not mm.".into(),
-                        RawThresholdSource::Simulation => "DEMO: generated simulation values; no hardware threshold was read.".into(),
+                        RawThresholdSource::Device => "しきい値を読み込みました".into(),
+                        RawThresholdSource::Simulation => "DEMO · しきい値を表示しました".into(),
                     };
                 } else {
                     self.raw_thresholds = None;
@@ -517,6 +597,7 @@ impl<P: Port> Controller<P> {
                 self.raw_thresholds = None;
                 self.cancel = cancel;
                 self.calibration = None;
+                self.sensitivity = None;
                 self.cancel_requested = false;
                 self.failure = None;
                 let path = match &op.command {
@@ -592,6 +673,30 @@ impl<P: Port> Controller<P> {
                     ),
                 };
             }
+            Response::Sensitivity(s) => {
+                self.live = false;
+                let expected = match op.command {
+                    Command::AdjustSensitivity { coefficient, .. } => coefficient,
+                    _ => unreachable!(),
+                };
+                if s.coefficient != expected
+                    || s.phase != niz_device::SensitivityPhase::Complete
+                    || !s.sent
+                    || !s.settings_verified
+                    || !s.lighting_verified
+                    || s.before.as_ref().is_none_or(|v| v.len() != 66)
+                    || s.after.as_ref().is_none_or(|v| v.len() != 66)
+                {
+                    self.message = "Sensitivity reply was incomplete or differed from the requested coefficient; read the device again.".into();
+                    let mut failure = Failure::from(self.message.clone());
+                    failure.began_write = s.attempted;
+                    failure.sensitivity = Some(Box::new(s.clone()));
+                    self.failure = Some(failure);
+                } else {
+                    self.message = sensitivity_message(&s);
+                }
+                self.sensitivity = Some(s);
+            }
             Response::Calibration(s) => {
                 self.live = false;
                 self.message = calibration_message(&s);
@@ -610,6 +715,9 @@ impl<P: Port> Controller<P> {
                 self.message = e.message.clone();
                 if let Some(s) = &e.calibration {
                     self.calibration = Some((**s).clone());
+                }
+                if let Some(s) = &e.sensitivity {
+                    self.sensitivity = Some((**s).clone());
                 }
                 self.failure = Some(e);
             }
@@ -652,13 +760,10 @@ impl<P: Port> Controller<P> {
 pub fn calibration_message(s: &CalibrationStatus) -> String {
     if let Some(held) = &s.held_key {
         if s.phase == CalibrationPhase::AwaitingHeldKeys {
-            return format!(
-                "Hold only physical key #{} and click Execute with the mouse. Other keys may also change; analog calibration cannot be restored.",
-                held.position + 1
-            );
+            return format!("#{} を押したまま実行してください", held.position + 1);
         }
         if s.phase == CalibrationPhase::Complete {
-            return "Held-key calibration completed. Compare all 66 normal-scan values below; confirm the physical response in Input Test. Read a fresh baseline before editing.".into();
+            return "校正が完了しました".into();
         }
     }
     match s.phase {
@@ -669,4 +774,20 @@ pub fn calibration_message(s: &CalibrationStatus) -> String {
  CalibrationPhase::Failed=>format!("Calibration failed during {:?}: {}. Unlock result: {:?}. Reconnect before further device work.",s.failure_phase,s.original_error.as_deref().unwrap_or("unknown failure"),s.unlock),
  _=>format!("Device operation in progress: {:?}",s.phase)
  }
+}
+
+pub fn sensitivity_message(s: &SensitivityStatus) -> String {
+    if let (Some(before), Some(after)) = (&s.before, &s.after)
+        && before.len() == 66
+        && after.len() == 66
+    {
+        let changed = before.iter().zip(after).filter(|(b, a)| b != a).count();
+        if changed == 0 {
+            "適用しました · しきい値の変化なし".into()
+        } else {
+            format!("適用しました · {changed}キーのしきい値が変化")
+        }
+    } else {
+        "適用結果の読み取りが完了していません".into()
+    }
 }

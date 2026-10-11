@@ -455,7 +455,6 @@ fn default_collapsed_views_have_no_wheel_scroll_range() {
             }
             if state == 4 {
                 h.app.view = View::InputTest;
-                h.app.input_test.text = "a\n".repeat(128);
             }
             if state == 1 {
                 let e = h.app.controller.editor.as_mut().unwrap();
@@ -526,14 +525,15 @@ fn default_collapsed_views_have_no_wheel_scroll_range() {
                             h.visible("進行中の校正 · 全キーに作用") && h.visible("中止を要求")
                         );
                     }
-                    7 => assert!(h.visible(
-                        "校正処理が完了しました。入力テストで実際の反応を確認してください。"
-                    )),
+                    7 => assert_eq!(
+                        h.app.controller.calibration.as_ref().unwrap().phase,
+                        CalibrationPhase::Complete
+                    ),
                     8 => assert!(
                         h.texts()
                             .iter()
-                            .any(|(text, rect, clip)| text.contains("校正が中断しました")
-                                && clip.contains_rect(*rect))
+                            .any(|(text, rect, clip)| text.contains("校正に失敗しました")
+                                || text.contains("中止しました") && clip.contains_rect(*rect))
                     ),
                     _ => assert!(h.visible("中止を要求")),
                 }
@@ -598,17 +598,20 @@ fn mixed_header_and_board_legend_rows_center_actual_galleys() {
 }
 
 #[test]
-fn focused_input_test_shows_received_text_and_releases_the_held_output() {
+fn focused_input_test_ignores_text_and_releases_the_held_output() {
     let mut h = Harness::loaded([960., 820.]);
     h.click("入力テスト");
     h.render(vec![
         key_event(egui::Key::A, true),
         egui::Event::Text("a".into()),
     ]);
-    assert!(h.visible("押下中: A"));
-    assert!(h.visible("a"));
+    assert_eq!(
+        h.app.input_test.codes().0,
+        std::collections::BTreeSet::from([43])
+    );
+    assert!(!h.visible("a"));
     h.render(vec![key_event(egui::Key::A, false)]);
-    assert!(h.visible("押下中: なし"));
+    assert!(h.app.input_test.codes().0.is_empty());
     assert!(!h.app.controller.editor.as_ref().unwrap().dirty());
     assert!(h.app.controller.pending.is_none());
 }
@@ -666,7 +669,7 @@ fn input_test_consumes_activation_shortcuts_without_editor_or_worker_side_effect
             egui::Event::Paste("private clipboard".into()),
             egui::Event::Ime(egui::ImeEvent::Commit("private ime".into())),
         ]);
-        assert!(h.app.input_test.text.is_empty());
+        assert!(h.app.input_test.codes().0.is_empty());
         let e = h.app.controller.editor.as_ref().unwrap();
         assert_eq!(
             (
@@ -711,7 +714,7 @@ fn input_test_clears_on_focus_loss_pending_confirmation_and_fresh_reference() {
         key_event(egui::Key::A, true),
         egui::Event::Text("入力🙂".repeat(120)),
     ]);
-    assert_eq!(h.app.input_test.text.chars().count(), 256);
+    assert!(!h.visible("入力🙂"));
     h.render(vec![egui::Event::WindowFocused(false)]);
     assert!(h.app.input_test.codes().0.is_empty());
     h.focused = false;
@@ -729,13 +732,12 @@ fn input_test_clears_on_focus_loss_pending_confirmation_and_fresh_reference() {
         generation: 0,
         operation: 999,
     });
-    let text_before = h.app.input_test.text.clone();
     h.render(vec![
         key_event(egui::Key::S, true),
         egui::Event::Text("paused input".into()),
     ]);
     assert!(h.app.input_test.codes().0.is_empty());
-    assert_eq!(h.app.input_test.text, text_before);
+    assert!(!h.visible("paused input"));
     assert!(
         h.texts()
             .iter()
@@ -1239,140 +1241,23 @@ fn apply_confirmation_execution_and_cancel_share_a_readable_danger_row() {
 }
 
 #[test]
-fn raw_threshold_disclosure_centers_arrow_on_visible_glyphs() {
-    let title = "しきい値について";
-    let mut failures = Vec::new();
-    for theme in [egui::Theme::Light, egui::Theme::Dark] {
-        for scale in [1., 2.] {
-            let mut h = Harness::loaded([960., 820.]);
-            h.native_pixels_per_point = scale;
-            h.ctx.set_theme(theme);
-            h.click("入力しきい値");
-            for state in ["closed", "open", "closed again"] {
-                if state != "closed" {
-                    h.click(title);
-                }
-                h.render(vec![egui::Event::PointerGone]);
-                for _ in 0..24 {
-                    h.render(vec![]);
-                }
-                let (index, text) = h
-                    .output
-                    .shapes
-                    .iter()
-                    .enumerate()
-                    .find_map(|(index, shape)| match &shape.shape {
-                        egui::Shape::Text(text) if text.galley.text() == title => {
-                            Some((index, text))
-                        }
-                        _ => None,
-                    })
-                    .expect("the real disclosure title must be rendered");
-                let glyphs = h
-                    .ctx
-                    .tessellate(vec![h.output.shapes[index].clone()], scale)
-                    .iter()
-                    .fold(egui::Rect::NOTHING, |bounds, primitive| {
-                        if let egui::epaint::Primitive::Mesh(mesh) = &primitive.primitive {
-                            bounds.union(mesh.calc_bounds())
-                        } else {
-                            bounds
-                        }
-                    });
-                assert!(h.output.shapes[index].clip_rect.contains_rect(glyphs));
-                let line = text.galley.rect.translate(text.pos.to_vec2());
-                let arrow = h.output.shapes[..index]
-                    .iter()
-                    .rev()
-                    .find_map(|shape| {
-                        let egui::Shape::Path(path) = &shape.shape else {
-                            return None;
-                        };
-                        let bounds = egui::Rect::from_points(&path.points);
-                        (path.closed
-                            && path.points.len() == 3
-                            && path.fill.a() != 0
-                            && bounds.right() < glyphs.left()
-                            && glyphs.left() - bounds.right() < 40.
-                            && (bounds.center().y - line.center().y).abs() < 20.
-                            && shape.clip_rect.contains_rect(bounds))
-                        .then_some(bounds)
-                    })
-                    .expect("the real disclosure triangle must be rendered beside its title");
-                let delta_pixels = (glyphs.center().y - arrow.center().y).abs() * scale;
-                println!(
-                    "theme={theme:?} scale={scale} state={state} glyphs={glyphs:?} arrow={arrow:?} center_delta_pixels={delta_pixels:.2}"
-                );
-                if delta_pixels > 0.5 {
-                    failures.push(format!(
-                        "{theme:?} scale={scale} {state}: {delta_pixels:.2}px"
-                    ));
-                }
-                assert_eq!(
-                    h.visible("通常スキャンの内部値。押し込み量(mm)ではありません。"),
-                    state == "open"
-                );
-                assert!(h.app.controller.pending.is_none());
-                assert!(h.app.controller.raw_thresholds().is_none());
-                assert!(!h.app.controller.editor.as_ref().unwrap().dirty());
-            }
-        }
-    }
-    assert!(
-        failures.is_empty(),
-        "disclosure arrow and visible glyphs are vertically misaligned: {failures:?}"
-    );
-}
-
-#[test]
-fn raw_threshold_details_are_optional_and_preserve_the_manual_snapshot() {
+fn compact_threshold_values_share_vertical_center_and_manual_snapshot() {
     for theme in [egui::Theme::Light, egui::Theme::Dark] {
         let mut h = Harness::loaded([960., 820.]);
         h.ctx.set_theme(theme);
         h.click("入力しきい値");
-        let meaning = "通常スキャンの内部値。押し込み量(mm)ではありません。";
-        assert!(
-            !h.visible(meaning),
-            "the internal-value explanation must stay in collapsed details"
-        );
-        assert!(h.visible("しきい値: 未取得"));
-        assert!(h.visible(
-            "キーを離して読み込んでください。入力が一時停止し、補正が初期値に戻る場合があります。"
-        ));
-        let generation = h.app.controller.generation;
-        h.click("しきい値について");
-        for _ in 0..8 {
-            h.render(vec![]);
-        }
-        assert!(h.visible(meaning));
-        assert!(h.visible("読み取り時点の値です。再読み込みするまで更新されません。"));
-        assert!(h.app.controller.raw_thresholds().is_none());
-        assert!(h.app.controller.pending.is_none());
-        h.click("しきい値について");
-        for _ in 0..8 {
-            h.render(vec![]);
-        }
-        assert!(!h.visible(meaning));
+        assert!(h.visible("FROM: —"));
+        assert!(h.visible("TO: —"));
+        assert!(!h.visible("しきい値について"));
         h.click("しきい値を読み込む");
         h.settle();
         let read_at = h.app.controller.raw_thresholds().unwrap().read_at;
-        assert!(h.visible("しきい値: 13"));
-        assert!(h.visible("DEMO値"));
-        h.click("しきい値について");
-        for _ in 0..8 {
-            h.render(vec![]);
-        }
-        assert!(h.visible(meaning));
-        assert!(h.visible("選択中のキーの内部値: 13 (0x0D)"));
+        let generation = h.app.controller.generation;
+        assert!(h.visible("FROM: 13"));
+        assert!(h.visible("TO: —"));
+        assert!((h.rect("FROM: 13").center().y - h.rect("TO: —").center().y).abs() <= 1.);
         h.click("S\n#32");
-        assert!(h.visible("しきい値: 14"));
-        assert!(h.visible("選択中のキーの内部値: 14 (0x0E)"));
-        h.click("しきい値について");
-        for _ in 0..8 {
-            h.render(vec![]);
-        }
-        assert!(!h.visible(meaning));
-        assert!(h.visible("しきい値: 14"));
+        assert!(h.visible("FROM: 14"));
         assert_eq!(h.app.controller.raw_thresholds().unwrap().read_at, read_at);
         assert_eq!(h.app.controller.generation, generation);
         assert!(h.app.controller.pending.is_none());
@@ -1384,19 +1269,19 @@ fn raw_threshold_details_are_optional_and_preserve_the_manual_snapshot() {
 fn raw_threshold_read_is_manual_and_demo_values_are_explicitly_simulated() {
     let mut h = Harness::loaded([960., 820.]);
     h.click("入力しきい値");
-    assert!(h.visible("しきい値: 未取得"));
+    assert!(h.visible("FROM: —"));
     assert!(h.visible("しきい値を読み込む"));
     assert!(h.visible("すべてのキーを離して準備"));
     h.click("S\n#32");
-    assert!(h.visible("しきい値: 未取得"));
+    assert!(h.visible("FROM: —"));
     h.click("しきい値を読み込む");
     h.settle();
-    assert!(h.visible("しきい値: 14"));
+    assert!(h.visible("FROM: 14"));
     assert!(h.visible("DEMO値"));
     h.click("A\n#31");
-    assert!(h.visible("しきい値: 13"));
+    assert!(h.visible("FROM: 13"));
     h.click("=\n#13");
-    assert!(h.visible("しきい値: 60"));
+    assert!(h.visible("FROM: 60"));
     assert!(h.visible("すべてのキーを離して準備"));
     h.click("生しきい値の読み取り記録");
     for _ in 0..8 {
@@ -1421,21 +1306,21 @@ fn raw_threshold_pending_and_error_show_no_old_or_partial_values() {
     h.click("入力しきい値");
     h.click("しきい値を読み込む");
     h.settle();
-    assert!(h.visible("しきい値: 13"));
+    assert!(h.visible("FROM: 13"));
     h.app.controller.read_raw_thresholds().unwrap();
     // Render the owned pending state before consuming the asynchronous demo reply.
     h.output = h
         .ctx
         .run_ui(h.input(vec![]), |ui| h.app.ui(ui, &mut h.frame));
     h.output.textures_delta.clear();
-    assert!(h.visible("しきい値: 読み込み中…"));
-    assert!(!h.visible("しきい値: 13"));
+    assert!(h.visible("FROM: …"));
+    assert!(!h.visible("FROM: 13"));
     h.app.controller.process(crate::protocol::Event {
         ticket: h.app.controller.pending.unwrap(),
         response: crate::protocol::Response::Error("raw snapshot test error".to_string().into()),
     });
     h.render(vec![]);
-    assert!(h.visible("しきい値: 未取得"));
+    assert!(h.visible("FROM: —"));
     assert!(h.app.controller.raw_thresholds().is_none());
     assert!(!h.app.controller.live);
     assert!(
@@ -1522,7 +1407,7 @@ fn raw_threshold_reader_accepts_focused_enter_and_space_as_explicit_actions() {
         h.render(vec![key_event(key, false)]);
         h.settle();
         assert!(h.app.controller.raw_thresholds().unwrap().read_at > previous);
-        assert!(h.visible("しきい値: 13"));
+        assert!(h.visible("FROM: 13"));
         assert!(h.app.controller.live);
         assert!(!h.app.controller.editor.as_ref().unwrap().dirty());
     }
@@ -1617,7 +1502,7 @@ fn raw_threshold_accesskit_click_targets_the_real_reader_and_respects_guards() {
                 "AccessKit Click must request the read"
             );
             h.settle();
-            assert!(h.visible("しきい値: 13"));
+            assert!(h.visible("FROM: 13"));
             assert!(!h.app.controller.editor.as_ref().unwrap().dirty());
         } else {
             assert!(!h.app.controller.raw_thresholds_pending(), "case {case}");
@@ -1696,7 +1581,7 @@ fn raw_threshold_snapshot_fits_default_and_remains_reachable_at_minimum() {
             let mut positions = std::collections::BTreeSet::new();
             let before = h.rect("NIZ Utility");
             assert!(h.visible("しきい値を読み込む"));
-            assert!(h.visible("しきい値: 13"));
+            assert!(h.visible("FROM: 13"));
             for _ in 0..8 {
                 for (text, rect, clip) in h.texts() {
                     if clip.contains_rect(rect)
@@ -1732,7 +1617,7 @@ fn held_key_calibration_is_visible_without_legacy_full_write_controls() {
             h.render(vec![]);
             assert!(h.visible("選択中のキー: #31 · A"));
             assert!(h.visible("すべてのキーを離して準備"));
-            assert!(h.visible("しきい値について"));
+            assert!(!h.visible("しきい値について"));
             assert!(h.visible("入力しきい値"));
             for _ in 0..8 {
                 h.scroll_down();
@@ -1978,8 +1863,7 @@ fn per_key_threshold_tab_preserves_owned_demo_cancel_and_generic_terminal_result
     assert_eq!(status.unlock, UnlockOutcome::Sent);
     assert!(!h.app.controller.calibration_active());
     assert!(h.app.controller.pending.is_none());
-    let result =
-        "校正が中断しました。ロック解除の結果を詳細で確認し、次の操作の前に接続し直してください。";
+    let result = "中止しました";
     assert!(h.visible(result));
     h.click("A\n#31");
     assert_eq!(h.app.calibration_position, 30);
@@ -2152,7 +2036,7 @@ fn held_calibration_prepares_frozen_target_and_finishes_without_an_os_keypress()
         h.click("A\n#31");
         assert_eq!(h.app.calibration_position, 31);
         h.settle();
-        assert!(h.visible("#32 · S だけを押したまま、マウスで実行"));
+        assert!(h.visible("Sを押したまま実行"));
         let execute = h.rect("実行");
         let cancel = h.rect("キャンセル");
         assert!((execute.center().y - cancel.center().y).abs() < 1.);
@@ -2167,9 +2051,9 @@ fn held_calibration_prepares_frozen_target_and_finishes_without_an_os_keypress()
             CalibrationPhase::Complete
         );
         assert!(!h.app.controller.calibration_active());
-        assert!(h.visible("#32 · S: 31 → 32"));
-        assert!(h.visible("他のキーの変化: 0 / 65"));
-        assert!(h.visible("DEMO: シミュレーション結果"));
+        assert!(h.visible("TO: 32"));
+        assert!(!h.visible("他のキーの変化: 0 / 65"));
+        assert!(h.visible("DEMO値"));
         assert!(!h.app.controller.live);
         assert!(!h.app.controller.editor.as_ref().unwrap().dirty());
         assert!(h.visible("→\n#66"));
@@ -2190,7 +2074,7 @@ fn held_calibration_cancel_keeps_the_selected_position_and_reports_missing_compa
         h.app.controller.calibration.as_ref().unwrap().phase,
         CalibrationPhase::Aborted
     );
-    assert!(h.visible("比較できません: 校正後の66キーの値が未取得です"));
+    assert!(h.visible("中止しました"));
     assert!(!h.visible("他のキーの変化: 0 / 65"));
 }
 
@@ -2214,14 +2098,14 @@ fn held_result_uses_complete_after_values_and_warns_about_neighbor_changes() {
         .unwrap();
     held.after.as_mut().unwrap()[31] = 90;
     h.render(vec![]);
-    assert!(h.visible("しきい値: 31"));
-    assert!(h.visible("他のキーの変化: 1 / 65"));
+    assert!(h.visible("TO: 31"));
+    assert!(h.visible("他のキーも変化: 1個"));
     let color = h
         .output
         .shapes
         .iter()
         .find_map(|s| match &s.shape {
-            egui::Shape::Text(t) if t.galley.text() == "他のキーの変化: 1 / 65" => {
+            egui::Shape::Text(t) if t.galley.text() == "他のキーも変化: 1個" => {
                 Some(t.galley.job.sections[0].format.color)
             }
             _ => None,
@@ -2232,8 +2116,8 @@ fn held_result_uses_complete_after_values_and_warns_about_neighbor_changes() {
         crate::theme::Palette::for_dark(h.ctx.theme() == egui::Theme::Dark).warning
     );
     h.click("S\n#32");
-    assert!(h.visible("しきい値: 90"));
-    assert!(h.visible("#31 · A: 30 → 31"));
+    assert!(h.visible("TO: 90"));
+    assert!(h.visible("FROM: 31"));
 }
 
 #[test]
@@ -2252,9 +2136,9 @@ fn held_result_never_claims_no_change_from_partial_read_and_keeps_complete_obser
     let held = status.held_key.as_mut().unwrap();
     held.after = held.before.clone();
     h.render(vec![]);
-    assert!(h.visible("#31 · A: 30 → 30"));
-    assert!(h.visible("他のキーの変化: 0 / 65"));
-    assert!(h.visible("値の変化は観測されませんでした。反応が改善したことは未確認です。"));
+    assert!(h.visible("TO: 30"));
+    assert!(!h.visible("他のキーの変化: 0 / 65"));
+    assert!(h.visible("FROM: 30"));
     h.app
         .controller
         .calibration
@@ -2265,10 +2149,11 @@ fn held_result_never_claims_no_change_from_partial_read_and_keeps_complete_obser
         .unwrap()
         .after = Some(vec![30; 65]);
     h.render(vec![]);
-    assert!(h.visible("比較できません: 校正後の66キーの値が未取得です"));
+    assert!(h.visible("校正に失敗しました。読み込み直してください。"));
     assert!(!h.visible("他のキーの変化: 0 / 65"));
     assert!(!h.visible("値の変化は観測されませんでした。反応が改善したことは未確認です。"));
-    assert!(h.visible("しきい値: 未取得"));
+    assert!(h.visible("FROM: 30"));
+    assert!(h.visible("TO: —"));
 }
 
 #[test]
@@ -2433,8 +2318,8 @@ fn assert_held_result_source_invalidation(change: usize) {
     h.settle();
     h.click("実行");
     h.settle();
-    assert!(h.visible("しきい値: 31"));
-    assert!(h.visible("#31 · A: 30 → 31"));
+    assert!(h.visible("TO: 31"));
+    assert!(h.visible("TO: 31"));
     if change == 0 {
         let mut second = h.app.controller.devices[0].clone();
         second.path = "demo://second-keyboard".into();
@@ -2459,10 +2344,10 @@ fn assert_held_result_source_invalidation(change: usize) {
     }
     h.render(vec![]);
     assert!(
-        h.visible("しきい値: 未取得"),
+        h.visible("FROM: —"),
         "change {change}: stale post-observation under new source"
     );
-    assert!(!h.visible("#31 · A: 30 → 31"));
+    assert!(!h.visible("TO: 31"));
     assert!(!h.visible("他のキーの変化: 0 / 65"));
     assert!(h.app.controller.calibration.is_none());
     assert!(!h.app.controller.live);
@@ -2493,7 +2378,7 @@ fn held_result_is_cleared_before_advancing_read_generation() {
     h.settle();
     h.click("実行");
     h.settle();
-    assert!(h.visible("しきい値: 31"));
+    assert!(h.visible("TO: 31"));
     let generation = h.app.controller.generation;
     h.app
         .controller
@@ -2505,6 +2390,86 @@ fn held_result_is_cleared_before_advancing_read_generation() {
     assert_eq!(h.app.controller.generation, generation + 1);
     assert!(h.app.controller.calibration.is_none());
     h.render(vec![]);
-    assert!(h.visible("しきい値: 未取得"));
-    assert!(!h.visible("#31 · A: 30 → 31"));
+    assert!(h.visible("FROM: —"));
+    assert!(!h.visible("TO: 31"));
+}
+
+// Catches a transcript/panel returning or key-up leaving a candidate lit.
+#[test]
+fn compact_input_test_only_renders_the_keyboard_and_tracks_key_release() {
+    let mut h = Harness::loaded([960., 820.]);
+    h.click("入力テスト");
+    let idle = label_fill(&h, "A\n#31");
+    h.render(vec![
+        key_event(egui::Key::A, true),
+        egui::Event::Text("private test text".into()),
+    ]);
+    assert_ne!(label_fill(&h, "A\n#31"), idle);
+    for removed in [
+        "private test text",
+        "このアプリが受け取った入力",
+        "押下中: A",
+        "表示を消す",
+        "通常",
+        "右 Fn",
+        "左 Fn",
+    ] {
+        assert!(!h.visible(removed), "extra input UI: {removed}");
+    }
+    assert_eq!(
+        h.texts()
+            .iter()
+            .filter(|(s, r, c)| s.contains("\n#") && c.contains_rect(*r))
+            .count(),
+        66
+    );
+    h.render(vec![key_event(egui::Key::A, false)]);
+    assert_eq!(label_fill(&h, "A\n#31"), idle);
+    assert!(h.app.controller.pending.is_none());
+}
+
+// Catches verbose duplicate summaries and missing complete before/after values.
+#[test]
+fn compact_threshold_result_only_shows_selected_from_to_and_actions() {
+    let mut h = Harness::loaded([960., 820.]);
+    h.click("入力しきい値");
+    h.click("すべてのキーを離して準備");
+    h.settle();
+    h.click("実行");
+    h.settle();
+    assert!(h.visible("FROM: 30"));
+    assert!(h.visible("TO: 31"));
+    for removed in [
+        "しきい値について",
+        "他のキーの変化: 0 / 65",
+        "しきい値: 31",
+        "通常スキャンの値を比較しました。実際の反応は入力テストで確認してください。",
+    ] {
+        assert!(!h.visible(removed), "extra threshold UI: {removed}");
+    }
+    assert!(h.visible("選択中のキー: #31 · A"));
+    assert!(h.app.controller.pending.is_none());
+}
+
+// Catches missing result wiring and wrong physical position after a global apply.
+#[test]
+fn compact_threshold_global_result_uses_current_selected_from_to() {
+    let mut h = Harness::loaded([960., 820.]);
+    h.click("入力しきい値");
+    h.click("全体の反応（一時）");
+    for _ in 0..8 {
+        h.render(vec![]);
+    }
+    h.app.sensitivity_coefficient = 20;
+    assert_text_contrast(&h, "適用", 4.5);
+    h.click("適用");
+    h.settle();
+    assert!(h.visible("FROM: 20"));
+    assert!(h.visible("TO: 16"));
+    assert!(h.app.controller.calibration.is_none());
+    h.click("S\n#32");
+    assert!(h.visible("FROM: 21"));
+    assert!(h.visible("TO: 17"));
+    assert!(h.app.controller.pending.is_none());
+    assert!(!h.app.controller.editor.as_ref().unwrap().dirty());
 }

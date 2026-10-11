@@ -1,0 +1,460 @@
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on build directory
+   Compiling niz-device v0.1.0 (/Users/devonly/Developer/personal/NIZ/crates/niz-device)
+   Compiling niz-gui v0.1.0 (/Users/devonly/Developer/personal/NIZ/crates/niz-gui)
+   Compiling niz-cli v0.1.0 (/Users/devonly/Developer/personal/NIZ/crates/niz-cli)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 7.88s
+     Running unittests src/main.rs (target/debug/deps/niz-20a8ba9983674041)
+
+running 5 tests
+test trial_result_tests::transaction_outcome_serialization_is_explicit ... ok
+test trial_result_tests::noop_trial_message_reports_backup_without_verification_claim ... ok
+test diagnostic_tests::raw_threshold_command_is_read_only_and_cannot_select_other_modes ... ok
+test trial_result_tests::changed_result_message_distinguishes_actual_settings_and_rgb_checks ... ok
+test diagnostic_tests::capture_saves_exact_readback_bytes_and_partial_write_context ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/offline.rs (target/debug/deps/offline-d8cc02d1e7b8edb7)
+
+running 10 tests
+test trial_swap_requires_explicit_confirmation_before_device_open ... ok
+test trial_without_confirmation_never_opens_device ... ok
+test malformed_inspect_is_nonzero ... ok
+test invalid_set_does_not_publish_output ... ok
+test timing_only_diff_shows_all_behavior_parameters ... ok
+test help_lists_commands_and_trial_confirmation ... ok
+test diff_reports_exact_changed_record ... ok
+test opaque_only_diff_identifies_changed_report_byte_and_values ... ok
+test inspect_and_set_preserve_unknown_bytes ... ok
+test offline_swap_moves_raw_records_and_second_swap_restores_fixture ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.53s
+
+     Running unittests src/lib.rs (target/debug/deps/niz_core-68ae607ad4a6c895)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/core.rs (target/debug/deps/core-ad87213dbcaabf86)
+
+running 31 tests
+test command_keeps_logical_zero_prefix ... ok
+test golden_single_and_repeat_headers ... ok
+test codec_rejects_incomplete_headers_and_invalid_sequences ... ok
+test custom_delays_accept_native_and_short_forms ... ok
+test continuation_header_mismatch_rejected ... ok
+test captures_include_timestamp_metadata ... ok
+test editing_short_custom_macro_retains_wire_shape_and_padding ... ok
+test key_names_and_aliases_use_niz_codes ... ok
+test macro_crosses_53_byte_boundary ... ok
+test linked_fn_edit_rejection_is_atomic_when_other_layer_is_uneditable ... ok
+test editing_native_macro_retains_opaque_terminal_secondary ... ok
+test differences_detect_padding_changes ... ok
+test fn_edits_sync_and_cannot_lose_either_fn ... ok
+test maximum_custom_macro_remains_bounded_and_roundtrips ... ok
+test edit_preserves_unrelated_raw_and_noop_macro ... ok
+test unicode_key_input_never_panics_and_arrows_are_accepted ... ok
+test profile_requires_all_unique_valid_records ... ok
+test legacy_import_and_semantic_merge_preserve_baseline_padding ... ok
+test unknown_semantic_code_retained_but_uneditable ... ok
+test merge_three_onto_nine_preserves_baseline_metadata_and_extra_groups ... ok
+test legacy_custom_macro_accepts_empty_item_lists ... ok
+test legacy_rejects_dtd_duplicates_missing_keys_and_unknown_modes ... ok
+test json_rejects_partial_counters_and_private_identity_fields ... ok
+test xml_declaration_must_be_valid_utf8_leading_and_unique ... ok
+test synthetic_legacy_markers_without_model_cannot_authorize_merge ... ok
+test json_roundtrips_raw_and_rejects_invalid_shape ... ok
+test legacy_source_variant_survives_json_and_rejects_cross_variant_merge ... ok
+test xml_rejects_duplicate_attributes_entities_sequence_gaps_and_overflow ... ok
+test xml_limits_apply_even_to_ignored_metadata ... ok
+test json_rejects_duplicate_fields_invalid_hex_metadata_and_record_sets ... ok
+test macro_transition_matrix_preserves_unrelated_records_padding_and_terminal_fields ... ok
+
+test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.27s
+
+     Running tests/priority.rs (target/debug/deps/priority-d35f4be751a35a8e)
+
+running 16 tests
+test equal_semantics_with_distinct_raw_padding_are_still_swapped ... ok
+test actual_baseline_allows_unrelated_remap_preserving_extra_fn_and_six_opaque_records ... ok
+test linked_swap_readdresses_all_macro_reports_in_each_moved_column ... ok
+test equal_native_macro_semantics_do_not_erase_distinct_opaque_terminal_fields_on_swap ... ok
+test native_import_rejects_metadata_mismatch_and_legacy_import_remains_strict ... ok
+test alternate_only_fn_swap_is_layer_local ... ok
+test extra_alternate_fn_is_local_when_reassigned_and_exact_noop_does_not_promote_it ... ok
+test normal_anchor_removal_rejects_even_with_extra_alternate_fn_and_duplicate_anchor_allows_move ... ok
+test linked_swap_checks_all_six_sources_before_committing ... ok
+test baseline_relative_validator_rejects_any_changed_opaque_source_or_target_or_tail ... ok
+test swap_rejects_invalid_indices_cross_layers_opaque_sources_and_invalid_noops_atomically ... ok
+test baseline_relative_validator_checks_identity_firmware_groups_and_both_fn_structures ... ok
+test native_import_retains_unchanged_live_opaque_records_and_target_extra_groups ... ok
+test ordinary_swaps_each_layer_move_raw_records_only_and_are_involutions ... ok
+test fn_anchor_swaps_exchange_six_records_from_any_selected_layer ... ok
+test raw_macro_swaps_keep_every_continuation_native_short_terminal_and_padding_byte ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running tests/raw_thresholds.rs (target/debug/deps/raw_thresholds-9397d628f867f552)
+
+running 6 tests
+test incremental_decoder_never_publishes_a_partial_table_and_rejects_first_bad_row ... ok
+test ignored_incremental_parser_failure_cannot_be_repaired_into_a_snapshot ... ok
+test exact_image_permutation_maps_every_matrix_cell_to_physical_slot ... ok
+test missing_excess_duplicate_reordered_and_out_of_range_rows_fail_closed ... ok
+test incorrect_prefix_opcode_and_modes_cannot_be_decoded_as_mode_one ... ok
+test mode_one_accepts_every_byte_value_and_opaque_nonzero_tails ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/niz_device-3bcbb1879b667533)
+
+running 124 tests
+test backup::short_write_tests::short_write_failure_is_error_with_partial_data ... ok
+test backup::tests::rgb_and_manifest_bytes_share_all_durable_boundaries ... ok
+test backup::short_write_tests::real_write_all_handles_short_writes_and_interruptions ... ok
+test event_tests::single_queue_positive_control_mirrors_native_read_only_drain ... ok
+test backup::tests::durable_reparse_detects_opaque_corruption ... ok
+test backup::tests::every_durable_boundary_must_succeed_in_order ... ok
+test held_calibration_tests::invalid_physical_position_is_rejected_before_preparation_traffic ... ok
+test raw_threshold_tests::eligibility_and_fresh_version_gate_reject_every_non_exact_firmware_before_dc ... ok
+test raw_threshold_tests::eligibility_and_read_reject_each_non_exact_identity_before_any_command ... ok
+test raw_threshold_tests::failed_queue_preparation_short_output_and_unknown_delivery_never_retry ... ok
+test raw_threshold_tests::getter_uses_only_fresh_f9_and_exact_zero_padded_dc_mode_one ... ok
+test raw_threshold_tests::malformed_short_timeout_extra_and_io_failed_dc_responses_all_settle_without_output ... ok
+test raw_threshold_tests::malformed_stream_keeps_every_received_frame_and_poison_prevents_retry ... ok
+test raw_threshold_tests::offline_snapshot_requires_exact_metadata_and_complete_valid_rows ... ok
+test raw_threshold_tests::overall_fake_clock_deadline_rejects_even_complete_last_row_with_evidence ... ok
+test raw_threshold_tests::passive_settle_has_attempt_and_report_limits_even_if_clock_never_advances ... ok
+test raw_threshold_tests::post_dc_passive_queue_failure_keeps_original_error_and_still_holds_bounded_wait ... ok
+test raw_threshold_tests::post_f9_queued_input_is_evidence_of_a_failed_transaction_and_prevents_dc ... ok
+test raw_threshold_tests::stale_baseline_firmware_cannot_authorize_a_fresh_different_device_firmware ... ok
+test raw_threshold_tests::stale_queued_frames_are_drained_and_post_stream_extras_fail_closed ... ok
+test raw_threshold_tests::successful_getter_preserves_existing_baseline_and_generation ... ok
+test raw_threshold_tests::truncated_oversize_missing_and_io_failed_streams_preserve_partial_evidence ... ok
+test raw_threshold_tests::uncertain_dc_delivery_passively_captures_remaining_reports_while_retaining_path_lock ... ok
+test sensitivity_tests::active_sensitivity_ownership_blocks_every_public_read_and_other_mutation ... ok
+test held_calibration_tests::held_only_captures_every_physical_position_and_keeps_post_dc_locked_until_one_unlock ... ok
+test held_calibration_tests::failed_pre_capture_cannot_lock_or_dispatch_dd_and_does_not_publish_partial_values ... ok
+test event_tests::bounded_trial_noops_emit_no_postflight_or_lighting_traffic ... ok
+test sensitivity_tests::cancellation_before_start_and_queued_preflight_input_dispatch_nothing ... ok
+test event_tests::event_driven_success_consumes_only_replies_generated_after_commands ... ok
+test sensitivity_tests::changed_current_config_or_firmware_stops_before_rgb_and_d8 ... ok
+test held_calibration_tests::cancellation_during_pre_and_post_dc_completes_the_bounded_reader_before_cleanup ... ok
+test held_calibration_tests::complete_threshold_observations_survive_later_settings_or_lighting_failure ... ok
+test sensitivity_tests::cancellation_immediately_after_d8_still_collects_bounded_post_dc ... ok
+test held_calibration_tests::held_only_unknown_dd_delivery_retains_before_without_cleanup_retry_or_false_completion ... ok
+test sensitivity_tests::durable_backup_failure_and_unexpected_queue_prevent_mutation ... ok
+test sensitivity_tests::invalid_range_foreign_stale_and_wrong_identity_reject_without_traffic ... ok
+test held_calibration_tests::held_only_late_malformed_and_timed_out_de_never_start_post_dc_and_unlock_once ... ok
+test event_tests::verifying_single_queue_never_drains_stale_input_between_transactions ... ok
+test sensitivity_tests::cancellation_during_each_dc_completes_owned_reader_then_stops_without_rollback ... ok
+test sensitivity_tests::retained_calibration_owner_cannot_be_replaced_by_sensitivity ... ok
+test sensitivity_tests::complete_after_survives_later_settings_or_rgb_failure ... ok
+test sensitivity_tests::successful_same_threshold_values_do_not_claim_a_change ... ok
+test tests::backup_io_failure_never_sends_f1 ... ok
+test tests::basic_qualification_does_not_authorize_fn_special_or_raw_padding ... ok
+test tests::backup_reparse_failure_never_sends_f1 ... ok
+test event_tests::preflight_single_queue_never_drains_stale_input_or_dispatches_calibration ... ok
+test tests::active_calibration_rejects_raw_getter_without_any_f9_or_dc ... ok
+test sensitivity_tests::exact_no_ack_d8_once_preserves_settings_and_complete_physical_observations ... ok
+test held_calibration_tests::held_only_cancel_before_dd_after_dispatch_and_after_de_retains_exact_command_state ... ok
+test held_calibration_tests::held_comparison_distinguishes_target_and_neighbor_changes_with_literal_physical_values ... ok
+test tests::calibration_completion_at_deadline_and_unknown_third_byte_are_preserved ... ok
+test tests::calibration_duplicate_da_during_held_is_not_completion_or_retried ... ok
+test tests::calibration_disconnect_does_not_send_cleanup_to_uncertain_handle ... ok
+test sensitivity_tests::uncertain_d8_delivery_holds_owned_passive_capture_before_return_without_extra_output ... ok
+test tests::calibration_finish_before_held_and_repeated_cancel_emit_no_extra_commands ... ok
+test tests::calibration_wrong_target_and_foreign_stale_tokens_never_dispatch ... ok
+test tests::check_apply_local_gate_emits_no_traffic ... ok
+test tests::counter_chunks_little_endian_and_exact_length ... ok
+test tests::counter_overflow_wrong_header_short_end_and_missing_end ... ok
+test tests::delayed_disconnected_and_send_failure_poison ... ok
+test sensitivity_tests::uncertain_d8_delivery_retains_before_snapshot_and_never_retries_or_rolls_back ... ok
+test tests::descriptor_bounds_reject_empty_oversized_and_zero_width_items ... ok
+test tests::calibration_prepare_rgb_and_backup_failures_never_lock ... ok
+test tests::descriptor_rejects_ambiguous_numbered_and_unnumbered_reports ... ok
+test held_calibration_tests::incomplete_malformed_late_and_extra_post_capture_never_publish_after_and_settle_before_unlock ... ok
+test tests::descriptor_rejects_id0_fields_outside_selected_collection ... ok
+test tests::descriptor_rejects_unbounded_global_and_collection_stacks ... ok
+test tests::descriptor_requires_exact_configuration_report_width_and_id ... ok
+test tests::calibration_input_failure_unlocks_once_retains_error_and_trace ... ok
+test tests::exact_target_rejects_old_s_trial_before_traffic ... ok
+test tests::foreign_baseline_rejected ... ok
+test tests::external_configuration_change_blocks_f1 ... ok
+test tests::firmware_change_blocks_f1 ... ok
+test tests::incoming_65_byte_report_not_silently_stripped ... ok
+test tests::known_e6_forms_still_require_exact_byte_counts_and_unknown_forms_fail ... ok
+test tests::lighting_exact_capture_and_framing ... ok
+test tests::lighting_malformed_fault_matrix_blocks_changing_commands ... ok
+test tests::missing_end_poisoned ... ok
+test tests::native_all_e6_terminator_completes_exact_counter_capture ... ok
+test tests::calibration_owned_stages_and_unchanged_postflight ... ok
+test tests::native_all_e6_terminator_completes_exact_rgb_capture ... ok
+test tests::native_quiet_probe_algorithm_is_nonblocking_and_preserves_unnumbered_bytes ... ok
+test tests::native_hardware_rgb_capture_matches_independent_golden_bytes ... ok
+test tests::calibration_success_after_idle_slices_retains_nonzero_reply_tail ... ok
+test tests::normal_apply_unqualified_sends_no_write ... ok
+test tests::old_baseline_after_new_capture_rejected ... ok
+test tests::durable_backup_roundtrips_without_overwrite ... ok
+test sensitivity_tests::failed_post_f9_write_short_read_and_timeout_hold_owned_d8_settle_without_dc_dispatch ... ok
+test tests::read_preserves_leading_zero_and_frames_65_bytes ... ok
+test tests::noop_never_writes_or_requeries_device ... ok
+test tests::fresh_baseline_required_after_success_and_new_calibration_requires_explicit_begin ... ok
+test tests::calibration_late_response_is_not_replayed_and_cleanup_failure_is_retained ... ok
+test tests::queued_notification_before_lock_or_db_is_failure_and_no_release_dispatch ... ok
+test tests::short_read_poisoned_and_raw_retained ... ok
+test tests::cancellation_before_lock_after_lock_and_mid_receive_stops_dispatch ... ok
+test tests::short_send_stops_without_retry_or_read ... ok
+test tests::single_qualification_rejects_changed_combo_and_macro ... ok
+test tests::readback_failure_retains_received_order_instead_of_canonical_order ... ok
+test tests::stream_deadline_and_report_limit_are_bounded ... ok
+test sensitivity_tests::malformed_partial_late_extra_and_short_post_dc_keep_raw_evidence_without_after ... ok
+test tests::trial_rejects_fn_multikey_macro_extra_group_and_reserved_code ... ok
+test tests::readback_unknown_byte_change_detected_no_retry ... ok
+test tests::trial_rejects_rgb_and_unidentified_s_suffix ... ok
+test tests::restore_a_over_live_b_preserves_unchanged_macro ... ok
+test tests::trial_rgb_preflight_failure_poisons_and_never_f1 ... ok
+test tests::trial_swap_rejects_fn_unknown_cross_layer_macro_and_bad_indices ... ok
+test tests::held_cancellation_before_send_and_after_completed_send_is_aborted_once ... ok
+test tests::unknown_terminator_preserves_diagnostics ... ok
+test tests::unsupported_model_rejected ... ok
+test tests::wrong_version_response_rejected ... ok
+test transport::lock_tests::lock_files_remain_after_release_with_private_permissions ... ok
+test tests::send_failure_after_f1_poisoned_no_retry ... ok
+test transport::lock_tests::locks_contend_for_same_path_and_release_on_drop ... ok
+test tests::snapshot_manifest_binds_config_and_lighting ... ok
+test tests::successful_trial_framing_backup_sequence_and_readback ... ok
+test tests::pending_output_and_user_wait_retain_owner_and_lock_until_cleanup_settles ... ok
+test tests::trial_rgb_readback_mismatch_retains_actual_native_reports ... ok
+test tests::trial_swap_transmits_exact_opaque_fixture_and_preserves_rgb ... ok
+test tests::calibration_postflight_failure_and_rgb_mismatch_leave_unlock_sent_and_session_blocked ... ok
+test tests::queued_stale_calibration_notification_before_dd_aborts_without_held_output ... ok
+test tests::snapshot_final_gate_reopens_every_artifact_and_rejects_tampering ... ok
+test tests::calibration_every_changing_output_error_or_short_is_unknown_without_cleanup ... ok
+test tests::calibration_release_and_held_input_failure_matrix_cleanup_once ... ok
+test tests::every_configuration_output_failure_retains_snapshot_and_never_retries ... ok
+
+test result: ok. 124 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 18.14s
+
+     Running unittests src/lib.rs (target/debug/deps/niz_gui-ef2579533dad9ba6)
+
+running 71 tests
+test app::tests::choice_value_preserves_changed_click_disabled_and_keyboard_semantics ... ok
+test app::tests::appearance_popup_closing_click_preserves_board_selection ... ok
+test app::tests::active_calibration_keeps_its_stage_visible_when_assignment_tab_is_clicked ... ok
+test app::tests::board_click_opens_current_output_without_creating_a_draft ... ok
+test app::tests::busy_operation_disables_board_navigation ... ok
+test app::tests::compact_input_test_only_renders_the_keyboard_and_tracks_key_release ... ok
+test app::tests::compact_threshold_global_result_uses_current_selected_from_to ... ok
+test app::tests::confirmation_blocks_the_appearance_menu_without_losing_the_confirmation ... ok
+test app::tests::appearance_switch_preserves_active_calibration_phase_and_cancel_visibility ... ok
+test app::tests::appearance_switch_preserves_unsupported_raw_assignment_and_output_readiness ... ok
+test app::tests::confirmation_does_not_allow_background_tab_switch ... ok
+test app::tests::focused_input_test_ignores_text_and_releases_the_held_output ... ok
+test app::tests::appearance_defaults_to_system_and_tracks_native_theme_changes ... ok
+test app::tests::compact_threshold_values_share_vertical_center_and_manual_snapshot ... ok
+test app::tests::default_assignment_frame_shows_every_key_and_primary_actions ... ok
+test app::tests::default_swap_frame_shows_every_key_and_primary_actions ... ok
+test app::tests::appearance_menu_switches_explicit_themes_and_resumes_system_without_editor_side_effects ... ok
+test app::tests::disabled_keycaps_and_popup_labels_remain_readable_in_both_themes ... ok
+test app::tests::expanded_device_information_uses_one_body_font_for_all_rows ... ok
+test app::tests::apply_confirmation_execution_and_cancel_share_a_readable_danger_row ... ok
+test app::tests::held_calibration_cancel_keeps_the_selected_position_and_reports_missing_comparison ... ok
+test app::tests::compact_threshold_result_only_shows_selected_from_to_and_actions ... ok
+test app::tests::held_key_calibration_is_visible_without_legacy_full_write_controls ... ok
+test app::tests::input_test_clears_on_focus_loss_pending_confirmation_and_fresh_reference ... ok
+test app::tests::held_result_is_cleared_before_advancing_read_generation ... ok
+test app::tests::held_result_is_invalidated_on_device_removal ... ok
+test app::tests::held_result_is_invalidated_on_same_path_identity_change ... ok
+test app::tests::held_result_is_invalidated_on_same_path_product_change ... ok
+test app::tests::input_test_consumes_activation_shortcuts_without_editor_or_worker_side_effects ... ok
+test app::tests::minimum_frame_keeps_long_device_details_inside_the_viewport ... ok
+test app::tests::held_result_is_invalidated_on_switch_to_second_device ... ok
+test app::tests::held_result_never_claims_no_change_from_partial_read_and_keeps_complete_observation_on_failure ... ok
+test app::tests::open_output_popup_and_its_closing_click_do_not_select_an_underlying_key ... ok
+test app::tests::held_execute_rejects_real_focused_keyboard_and_accessibility_actions ... ok
+test app::tests::per_key_threshold_board_tooltip_states_selection_has_no_device_effect ... ok
+test app::tests::physical_calibration_choices_respect_popup_modal_and_pending_guards ... ok
+test app::tests::held_result_uses_complete_after_values_and_warns_about_neighbor_changes ... ok
+test app::tests::minimum_frame_scroll_reaches_every_key_apply_and_files_without_horizontal_clipping ... ok
+test app::tests::raw_threshold_pending_and_error_show_no_old_or_partial_values ... ok
+test app::tests::mixed_header_and_board_legend_rows_center_actual_galleys ... ok
+test app::tests::raw_threshold_read_is_manual_and_demo_values_are_explicitly_simulated ... ok
+test app::tests::raw_threshold_reader_accepts_focused_enter_and_space_as_explicit_actions ... ok
+test app::tests::physical_calibration_board_is_complete_default_and_reachable_at_minimum ... ok
+test app::tests::semantic_palette_roles_meet_text_and_state_contrast_in_both_themes ... ok
+test app::tests::held_results_expose_all_66_literal_pairs_in_collapsed_details ... ok
+test app::tests::per_key_threshold_tab_preserves_owned_demo_cancel_and_generic_terminal_result ... ok
+test input_test::tests::clipboard_ime_and_unreported_vendor_keys_never_create_a_physical_match ... ok
+test input_test::tests::exact_modifier_sides_override_ambiguous_aggregate_and_release_independently ... ok
+test input_test::tests::focus_loss_and_reference_change_clear_held_and_text_does_not_create_a_key ... ok
+test input_test::tests::matching_uses_single_baseline_outputs_and_preserves_duplicate_candidates ... ok
+test input_test::tests::modifier_release_orders_and_unmatched_release_allow_new_aggregate_only_input ... ok
+test input_test::tests::precise_last_modifier_release_does_not_revive_stale_aggregate_candidates ... ok
+test input_test::tests::repeated_press_needs_one_release_and_physical_punctuation_survives_shift ... ok
+test sensitivity_ui::tests::apply_accepts_only_primary_pointer_and_blocks_popup ... ok
+test app::tests::held_calibration_prepares_frozen_target_and_finishes_without_an_os_keypress ... ok
+test sensitivity_ui::tests::apply_hover_instructs_release_without_dispatch_or_geometry_change ... ok
+test sensitivity_ui::tests::ease_slider_endpoints_map_to_opposite_coefficients ... ok
+test sensitivity_ui::tests::panel_is_compact_and_collapsed_by_default ... ok
+test sensitivity_ui::tests::comparison_summary_does_not_guarantee_change_and_details_cover_every_physical_key ... ok
+test app::tests::raw_threshold_accesskit_click_targets_the_real_reader_and_respects_guards ... ok
+test app::tests::held_changing_controls_respect_popup_confirmation_close_and_pending_guards ... ok
+test app::tests::swap_clicks_add_two_changes_only_after_add_and_undo_restores_them ... ok
+test app::tests::raw_threshold_unfocused_enter_theme_and_key_navigation_never_refresh_the_snapshot ... ok
+test app::tests::raw_threshold_read_button_hover_keeps_geometry_fixed_in_both_themes ... ok
+test app::tests::strong_card_labels_have_readable_rendered_foreground ... ok
+test app::tests::raw_threshold_read_button_respects_source_modal_popup_and_close_guards ... ok
+test app::tests::raw_threshold_snapshot_fits_default_and_remains_reachable_at_minimum ... ok
+test app::tests::raw_threshold_disabled_reader_rejects_focused_keyboard_activation ... ok
+test app::tests::default_collapsed_views_have_no_wheel_scroll_range ... ok
+test app::tests::per_key_threshold_selection_never_edits_or_dispatches_for_any_physical_key ... ok
+test app::tests::hover_and_press_keep_choice_glyphs_controls_and_neighbors_fixed ... ok
+
+test result: ok. 71 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 43.37s
+
+     Running unittests src/main.rs (target/debug/deps/niz_gui-8495035df892f35b)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/controller.rs (target/debug/deps/controller-70150c65af80cfbf)
+
+running 27 tests
+test double_click_read_emits_one_request ... ok
+test close_during_pending_output_sets_flag_and_waits_before_cleanup ... ok
+test closing_during_read_waits_for_owned_worker_before_returning ... ok
+test keyboard_only_calibration_activation_never_dispatches ... ok
+test failure_preserves_original_phase_and_uncertain_unlock_for_display ... ok
+test changed_reread_retains_detached_draft_until_explicit_discard ... ok
+test exact_trial_rejects_fn_columns_and_wrong_firmware ... ok
+test disconnect_error_retains_draft_and_history ... ok
+test approval_is_pinned_to_target_and_cannot_follow_selection_change ... ok
+test file_profile_never_grants_live_baseline ... ok
+test detached_draft_can_navigate_but_never_dispatches_a_trial_or_calibration ... ok
+test no_op_message_never_claims_a_write_or_rgb_verification ... ok
+test board_navigation_sends_no_request_and_cannot_reuse_an_earlier_trial_approval ... ok
+test read_b_retain_keeps_a_draft_detached_until_explicit_replace ... ok
+test read_response_attaches_only_current_operation_and_generation ... ok
+test list_reorder_keeps_selected_and_attached_path ... ok
+test retain_reconnect_requires_same_source_and_unchanged_baseline ... ok
+test successful_calibration_requires_explicit_fresh_read_before_trial ... ok
+test approval_cannot_apply_a_draft_changed_after_confirmation ... ok
+test terminal_cancel_failure_does_not_dispatch_another_unlock ... ok
+test stage_gates_and_unrelated_work_block_during_user_wait ... ok
+test same_path_with_changed_identity_detaches_the_editor ... ok
+test removed_or_changed_descriptor_detaches_without_auto_switch ... ok
+test selection_change_detaches_write_and_calibration_preserving_history ... ok
+test switching_back_to_original_path_still_requires_explicit_read ... ok
+test trial_sends_operands_and_exact_draft_once ... ok
+test exact_trial_rejects_multiedit_padding_and_foreign_metadata ... ok
+
+test result: ok. 27 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/editor.rs (target/debug/deps/editor-04335e1ae079f10f)
+
+running 12 tests
+test invalid_selection_and_wrong_import_never_change_draft ... ok
+test native_import_retains_opaque_and_is_one_undo_step ... ok
+test fn_swap_preview_is_all_layers_atomic_and_undoable ... ok
+test trigger_guide_requires_live_exact_target_and_existing_right_fn_7_action ... ok
+test unknown_source_cannot_be_edited_and_history_remains ... ok
+test reassign_to_is_output_not_physical_position ... ok
+test fn_swap_with_unknown_alternate_record_is_atomic ... ok
+test regeneration_uses_selection_without_mutating_source ... ok
+test unknown_import_delta_leaves_existing_dirty_history_untouched ... ok
+test layer_selection_changes_same_physical_key_only_on_that_layer ... ok
+test swap_to_is_physical_position_and_moves_whole_raw_record ... ok
+test undo_redo_and_noop_history_are_byte_exact ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/held_calibration.rs (target/debug/deps/held_calibration-9779a7cf99e6465e)
+
+running 3 tests
+test held_controller_pins_target_and_rejects_keyboard_duplicate_and_close ... ok
+test held_worker_rejects_foreign_target_and_position_without_consuming_baseline ... ok
+test held_worker_auto_finishes_and_preserves_complete_simulated_comparison ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.36s
+
+     Running tests/keyboard.rs (target/debug/deps/keyboard-75a3cf42ff95ae6b)
+
+running 17 tests
+test layer_navigation_preserves_slots_and_initializes_current_layer_output ... ok
+test busy_confirmation_and_invalid_slot_clicks_preserve_selection_target_and_history ... ok
+test selecting_a_loads_its_setting_without_editing_or_creating_history ... ok
+test same_swap_operands_remain_visible_without_editing ... ok
+test every_fixed_slot_remains_reachable_at_minimum_width_and_duplicates_do_not_reorder ... ok
+test applying_an_updated_selected_record_refreshes_both_known_and_unknown_action_state ... ok
+test selected_opaque_padding_changes_refresh_pending_output_from_the_current_action ... ok
+test raw_dirty_markers_distinguish_padding_and_follow_layer_and_undo ... ok
+test official_position_legends_remain_distinct_from_current_captured_assignments ... ok
+test from_dropdown_uses_the_same_navigation_and_only_draft_values ... ok
+test compact_navigation_labels_keep_the_vendor_action_meaning ... ok
+test swap_target_transitions_are_explicit_and_never_swap_on_a_click ... ok
+test importing_an_advanced_selected_action_requires_an_explicit_replacement ... ok
+test demo_uses_the_captured_profile_without_changing_core_demo_semantics ... ok
+test unrelated_import_history_and_acceptance_preserve_the_pending_output ... ok
+test history_restores_unassigned_and_special_actions_without_a_stale_replacement ... ok
+test unsupported_unknown_macro_and_unassigned_keys_keep_raw_records_on_navigation ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/raw_thresholds_controller.rs (target/debug/deps/raw_thresholds_controller-d1ee3d9e42088409)
+
+running 6 tests
+test manual_raw_read_binds_target_and_preserves_editor_history ... ok
+test stale_raw_tickets_and_duplicate_completion_cannot_replace_snapshot ... ok
+test unsupported_offline_busy_and_close_states_never_dispatch_raw_read ... ok
+test raw_snapshot_accessor_never_exposes_mutated_target_or_baseline ... ok
+test raw_reply_rejects_wrong_metadata_target_source_and_response_command ... ok
+test raw_snapshot_invalidates_on_connection_source_write_error_and_close ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/raw_thresholds_worker.rs (target/debug/deps/raw_thresholds_worker-59b62a4cc3b0f373)
+
+running 4 tests
+test raw_worker_calls_one_reader_and_returns_the_owned_target ... ok
+test wrong_ticket_target_and_unsupported_baseline_never_enter_raw_backend ... ok
+test raw_io_or_metadata_failure_poison_worker_until_explicit_baseline_read ... ok
+test demo_raw_reader_is_simulated_and_calibration_ownership_blocks_it ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.91s
+
+     Running tests/sensitivity.rs (target/debug/deps/sensitivity-dac6dc78a921be74)
+
+running 9 tests
+test worker_sensitivity_guards_requests_and_consumes_eligibility_exactly_once ... ok
+test worker_failure_keeps_complete_before_and_requires_new_read_before_retry ... ok
+test reconcile_changed_descriptor_discards_old_sensitivity_source ... ok
+test controller_unrelated_success_does_not_publish_sensitivity ... ok
+test controller_sensitivity_requires_pointer_exact_fresh_target_and_exclusive_ownership ... ok
+test controller_rejects_mismatched_coefficient_and_incomplete_success_but_retains_observations ... ok
+test controller_retains_failure_observation_then_invalidates_it_on_read_and_switch ... ok
+test controller_sensitivity_rejects_unsupported_or_detached_baseline ... ok
+test worker_calibration_wait_owns_device_against_sensitivity ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.91s
+
+     Running tests/worker.rs (target/debug/deps/worker-c530a023bd879e32)
+
+running 9 tests
+test calibration_request_with_other_path_cannot_enter_backend ... ok
+test successful_finish_also_invalidates_baseline_until_explicit_read ... ok
+test aborted_or_failed_session_requires_reconnect ... ok
+test worker_enforces_user_wait_blocking_and_stage_order_without_ui ... ok
+test stale_generation_and_replayed_operation_never_call_backend ... ok
+test worker_rejects_arbitrary_draft_even_if_ui_gates_are_bypassed ... ok
+test changing_request_must_name_the_attached_path_and_descriptor ... ok
+test worker_routes_only_exact_basic_operands_from_native_baseline ... ok
+test demo_thread_close_during_stage_waits_then_completes_cleanup ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.46s
+

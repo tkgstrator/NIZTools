@@ -29,6 +29,7 @@ pub struct App {
     backup: PathBuf,
     confirm: Option<Confirm>,
     calibration_position: usize,
+    sensitivity_coefficient: u8,
     keyboard: KeyboardState,
     appearance: egui::ThemePreference,
     input_test: InputTest,
@@ -61,6 +62,7 @@ impl App {
             backup,
             confirm: None,
             calibration_position: 30,
+            sensitivity_coefficient: 24,
             keyboard: KeyboardState::default(),
             appearance: egui::ThemePreference::System,
             input_test: InputTest::default(),
@@ -353,6 +355,49 @@ impl App {
     fn calibration(&mut self, ui: &mut egui::Ui, popup_at_frame_start: bool) {
         let pending = self.controller.pending.is_some();
         let blocked = self.controller.blocked() || self.confirm.is_some();
+        let current_source = self
+            .controller
+            .attached_target
+            .as_ref()
+            .is_some_and(|target| {
+                self.controller.selected_path.as_ref() == Some(&target.path)
+                    && self
+                        .controller
+                        .selected_device()
+                        .is_some_and(|device| Target::from(device) == *target)
+            });
+        let held = self
+            .controller
+            .calibration
+            .as_ref()
+            .filter(|_| current_source)
+            .and_then(|status| status.held_key.as_ref())
+            .cloned();
+        let sensitivity = self
+            .controller
+            .sensitivity
+            .as_ref()
+            .filter(|_| current_source)
+            .cloned();
+        let before = held
+            .as_ref()
+            .and_then(|h| h.before.as_ref())
+            .or_else(|| sensitivity.as_ref().and_then(|s| s.before.as_ref()))
+            .filter(|v| v.len() == 66)
+            .and_then(|v| v.get(self.calibration_position))
+            .copied()
+            .or_else(|| {
+                self.controller
+                    .raw_thresholds()
+                    .and_then(|r| r.snapshot.value_for_position(self.calibration_position))
+            });
+        let after = held
+            .as_ref()
+            .and_then(|h| h.after.as_ref())
+            .or_else(|| sensitivity.as_ref().and_then(|s| s.after.as_ref()))
+            .filter(|v| v.len() == 66)
+            .and_then(|v| v.get(self.calibration_position))
+            .copied();
         Palette::of(ui).card().show(ui, |ui| {
             ui.set_width(ui.available_width());
             ui.strong(format!(
@@ -360,111 +405,137 @@ impl App {
                 self.calibration_position + 1,
                 keyboard::physical_legend(self.calibration_position)
             ));
-            ui.small("公式校正: 他のキーも変化する場合があります。アナログ校正は元に戻せません。");
-            let selected_value = self.controller.raw_thresholds()
-                .and_then(|read| read.snapshot.value_for_position(self.calibration_position))
-                .or_else(|| self.controller.calibration.as_ref()?.held_key.as_ref()?.after.as_ref()
-                    .filter(|values| values.len() == 66)?.get(self.calibration_position).copied());
-            let value = selected_value
-                .map(|value| value.to_string())
-                .unwrap_or_else(|| if self.controller.raw_thresholds_pending() { "読み込み中…".into() } else { "未取得".into() });
-            let actions_enabled = !popup_at_frame_start && self.confirm.is_none()
-                && !egui::Popup::is_any_open(ui.ctx()) && !self.controller.close_requested;
-            ui.horizontal_wrapped(|ui| {
-                ui.label(format!("しきい値: {value}"));
-                let enabled = self.controller.can_read_raw_thresholds()
-                    && self.confirm.is_none() && !popup_at_frame_start
-                    && !egui::Popup::is_any_open(ui.ctx());
-                if ui.add_enabled(enabled, egui::Button::new("しきい値を読み込む"))
-                    .on_hover_text("キーを離して読み込んでください。入力が一時停止し、補正が初期値に戻る場合があります。")
-                    .clicked()
-                {
-                    let result = self.controller.read_raw_thresholds();
-                    self.result(result);
-                }
-                if self.controller.raw_thresholds().is_some_and(|read| read.source == RawThresholdSource::Simulation) {
+            ui.horizontal(|ui| {
+                ui.label(format!(
+                    "FROM: {}",
+                    before.map(|v| v.to_string()).unwrap_or_else(|| {
+                        if self.controller.raw_thresholds_pending() {
+                            "…".into()
+                        } else {
+                            "—".into()
+                        }
+                    })
+                ));
+                ui.label("→");
+                ui.label(format!(
+                    "TO: {}",
+                    after.map(|v| v.to_string()).unwrap_or_else(|| "—".into())
+                ));
+                if self.demo {
                     ui.small("DEMO値");
                 }
-                if !self.controller.calibration_active()
-                    && ui.add_enabled(actions_enabled && self.controller.can_read_raw_thresholds(),
-                    egui::Button::new("すべてのキーを離して準備"))
-                    .on_hover_text("離した状態の校正を保持し、66キーの通常しきい値を読み取ります。押すキーは次の段階で確認します。")
-                    .clicked_by(egui::PointerButton::Primary)
-                {
-                    let result = self.controller.begin_held(self.backup.clone(), self.calibration_position, Activation::Pointer);
-                    self.result(result);
-                }
             });
-            if !self.controller.calibration_active() {
-                ui.small("キーを離して読み込んでください。入力が一時停止し、補正が初期値に戻る場合があります。");
-            }
-
+            let actions_enabled = !popup_at_frame_start
+                && self.confirm.is_none()
+                && !egui::Popup::is_any_open(ui.ctx())
+                && !self.controller.close_requested;
             if let Some(status) = &self.controller.calibration
                 && let Some(held) = &status.held_key
                 && self.controller.calibration_active()
             {
-                let position = held.position;
-                ui.strong(format!("#{:02} · {} だけを押したまま、マウスで実行", position + 1, keyboard::physical_legend(position)));
-                let ready = status.phase == CalibrationPhase::AwaitingHeldKeys && !pending
+                ui.label(format!(
+                    "{}を押したまま実行",
+                    keyboard::physical_legend(held.position)
+                ));
+                let ready = status.phase == CalibrationPhase::AwaitingHeldKeys
+                    && !pending
                     && !self.controller.cancel_requested;
                 ui.horizontal(|ui| {
-                    if ui.add_enabled(actions_enabled && ready,
-                        egui::Button::new(egui::RichText::new("実行").color(egui::Color32::WHITE))
-                            .fill(egui::Color32::from_rgb(180, 40, 40)))
+                    if ui
+                        .add_enabled(
+                            actions_enabled && ready,
+                            egui::Button::new(
+                                egui::RichText::new("実行").color(egui::Color32::WHITE),
+                            )
+                            .fill(egui::Color32::from_rgb(180, 40, 40)),
+                        )
                         .clicked_by(egui::PointerButton::Primary)
                     {
                         let result = self.controller.held(Activation::Pointer);
                         self.result(result);
                     }
-                    if ui.add_enabled(actions_enabled && !self.controller.cancel_requested,
-                        egui::Button::new("キャンセル")).clicked()
-                    { self.controller.cancel_calibration(); }
-                    if pending { ui.spinner(); ui.small("処理と比較を待っています…"); }
-                });
-            } else if self.controller.calibration_active() && self.controller.calibration.is_none() {
-                ui.horizontal(|ui| { ui.spinner(); ui.label("準備と安全な終了を待っています…");
-                    if ui.add_enabled(actions_enabled && !self.controller.cancel_requested,
-                        egui::Button::new("キャンセル")).clicked() { self.controller.cancel_calibration(); }
-                });
-            } else if !self.controller.calibration_active()
-                && let Some(status) = &self.controller.calibration && let Some(held) = &status.held_key {
-                    if self.demo { ui.small("DEMO: シミュレーション結果"); }
-                    match (held.before.as_deref(), held.after.as_deref()) {
-                        (Some(before), Some(after)) if before.len() == 66 && after.len() == 66 && held.position < 66 => {
-                            ui.strong(format!("#{:02} · {}: {} → {}", held.position + 1,
-                                keyboard::physical_legend(held.position), before[held.position], after[held.position]));
-                            let other = (0..66).filter(|&i| i != held.position && before[i] != after[i]).count();
-                            let label = format!("他のキーの変化: {other} / 65");
-                            if other > 0 { ui.colored_label(Palette::of(ui).warning, label); } else { ui.label(label); }
-                            if before == after { ui.small("値の変化は観測されませんでした。反応が改善したことは未確認です。"); }
-                            else { ui.small("通常スキャンの値を比較しました。実際の反応は入力テストで確認してください。"); }
-                        }
-                        _ => { ui.colored_label(Palette::of(ui).warning, "比較できません: 校正後の66キーの値が未取得です"); }
+                    if ui
+                        .add_enabled(
+                            actions_enabled && !self.controller.cancel_requested,
+                            egui::Button::new("キャンセル"),
+                        )
+                        .clicked()
+                    {
+                        self.controller.cancel_calibration();
                     }
+                    if pending {
+                        ui.spinner();
+                    }
+                });
+            } else if self.controller.calibration_active() && self.controller.calibration.is_none()
+            {
+                ui.horizontal(|ui| {
+                    ui.spinner();
+                    ui.label("準備中…");
+                    if ui
+                        .add_enabled(
+                            actions_enabled && !self.controller.cancel_requested,
+                            egui::Button::new("キャンセル"),
+                        )
+                        .clicked()
+                    {
+                        self.controller.cancel_calibration();
+                    }
+                });
+            } else if !self.controller.calibration_active() {
+                ui.horizontal(|ui| {
+                    if ui
+                        .add_enabled(
+                            actions_enabled && self.controller.can_read_raw_thresholds(),
+                            egui::Button::new("しきい値を読み込む"),
+                        )
+                        .on_hover_text("キーを離して読み込む")
+                        .clicked()
+                    {
+                        let result = self.controller.read_raw_thresholds();
+                        self.result(result);
+                    }
+                    if ui
+                        .add_enabled(
+                            actions_enabled && self.controller.can_read_raw_thresholds(),
+                            egui::Button::new("すべてのキーを離して準備"),
+                        )
+                        .clicked_by(egui::PointerButton::Primary)
+                    {
+                        let result = self.controller.begin_held(
+                            self.backup.clone(),
+                            self.calibration_position,
+                            Activation::Pointer,
+                        );
+                        self.result(result);
+                    }
+                });
+                if let Some(held) = held.as_ref()
+                    && let (Some(before), Some(after)) = (&held.before, &held.after)
+                    && before.len() == 66
+                    && after.len() == 66
+                {
+                    let other = (0..66)
+                        .filter(|&i| i != held.position && before[i] != after[i])
+                        .count();
+                    if other > 0 {
+                        ui.colored_label(
+                            Palette::of(ui).warning,
+                            format!("他のキーも変化: {other}個"),
+                        );
+                    }
+                }
             }
-            let details_title = "しきい値について";
-            egui::CollapsingHeader::new(details_title).icon(move |ui, openness, response| {
-                use egui::emath::GuiRounding as _;
-                let galley = egui::WidgetText::from(details_title).into_galley(
-                    ui, Some(egui::TextWrapMode::Extend), f32::INFINITY, egui::TextStyle::Button,
-                );
-                // Match the title's pixel-snapped visible glyphs, not its font line box.
-                let text_top = (response.rect.center().y - galley.size().y / 2.)
-                    .round_to_pixels(ui.ctx().pixels_per_point());
-                let glyph_center = text_top + galley.mesh_bounds.center().y;
-                let rect = response.rect.translate(egui::vec2(0., glyph_center - response.rect.center().y));
-                egui::collapsing_header::paint_default_icon(ui, openness, &response.clone().with_new_rect(rect));
-            }).show(ui, |ui| {
-                ui.label("通常スキャンの内部値。押し込み量(mm)ではありません。");
-                if let Some(value) = selected_value {
-                    ui.label(format!("選択中のキーの内部値: {value} (0x{value:02X})"));
-                }
-                ui.label("読み取り時点の値です。再読み込みするまで更新されません。");
-                ui.label("キーの選択だけでは設定を変更しません。");
-                if self.controller.raw_thresholds().is_some_and(|read| read.source == RawThresholdSource::Simulation) {
-                    ui.small("DEMO: シミュレーション値です。実機から読み取った値ではありません。");
-                }
-            });
+        });
+        ui.add_enabled_ui(self.confirm.is_none(), |ui| {
+            crate::sensitivity_ui::show(
+                ui,
+                &mut self.controller,
+                &mut self.sensitivity_coefficient,
+                &self.backup,
+                self.demo,
+                popup_at_frame_start,
+            );
         });
         if self.controller.calibration_active()
             && self
@@ -491,10 +562,6 @@ impl App {
             });
         }
         Palette::of(ui).card().show(ui, |ui| {
-            ui.horizontal_wrapped(|ui| {
-                ui.strong("刻印からキーを選択");
-                ui.small("公式配列の刻印 · キーの選択だけでは設定を変更しません");
-            });
             if let Some(slot) = keyboard::show_physical(
                 ui,
                 self.calibration_position,
@@ -515,43 +582,93 @@ impl App {
             });
         }
         if let Some(status) = &self.controller.calibration {
-            if status.phase == CalibrationPhase::Complete {
-                ui.label("校正処理が完了しました。入力テストで実際の反応を確認してください。");
-            }
             if matches!(
                 status.phase,
                 CalibrationPhase::Aborted | CalibrationPhase::Failed
             ) {
-                ui.colored_label(Palette::of(ui).warning,"校正が中断しました。ロック解除の結果を詳細で確認し、次の操作の前に接続し直してください。");
+                ui.colored_label(
+                    Palette::of(ui).warning,
+                    if status.phase == CalibrationPhase::Aborted {
+                        "中止しました"
+                    } else {
+                        "校正に失敗しました。読み込み直してください。"
+                    },
+                );
             }
             egui::CollapsingHeader::new("校正の結果・対象・バックアップ").show(ui, |ui| {
                 if let Some(target) = &self.controller.attached_target {
                     target_details(ui, target);
                 }
                 if let Some(held) = &status.held_key {
-                    ui.small("バックアップは割り当てと照明のみです。アナログ校正は復元できません。");
-                    ui.small("通常スキャンの読み取り値の比較です。保存済みアナログ表、永続性、他のモード、実際の反応改善は未確認です。");
                     if let (Some(before), Some(after)) = (&held.before, &held.after)
-                        && before.len() == 66 && after.len() == 66 {
-                        let changed = (0..66).filter(|&p| p != held.position && before[p] != after[p])
-                            .map(|p| format!("#{:02} · {}: {} → {}", p + 1, keyboard::physical_legend(p), before[p], after[p]))
+                        && before.len() == 66
+                        && after.len() == 66
+                    {
+                        let changed = (0..66)
+                            .filter(|&p| p != held.position && before[p] != after[p])
+                            .map(|p| {
+                                format!(
+                                    "#{:02} · {}: {} → {}",
+                                    p + 1,
+                                    keyboard::physical_legend(p),
+                                    before[p],
+                                    after[p]
+                                )
+                            })
                             .collect::<Vec<_>>();
-                        if !changed.is_empty() { ui.colored_label(Palette::of(ui).warning, format!("変化した他のキー: {}", changed.join(" / "))); }
-                    }
-                    if self.demo { ui.label("DEMO: 以下は生成したシミュレーション値です。実機測定ではありません。"); }
-                    ui.label("全66キーの比較 · 公式配列の刻印");
-                    egui::Grid::new("held-key-comparison").striped(true).show(ui, |ui| {
-                        ui.strong("物理位置・刻印"); ui.strong("前 → 後"); ui.strong("変化"); ui.end_row();
-                        for position in 0..66 {
-                            let before = held.before.as_ref().filter(|v| v.len() == 66).map(|v| v[position]);
-                            let after = held.after.as_ref().filter(|v| v.len() == 66).map(|v| v[position]);
-                            ui.label(format!("#{:02} · {}", position + 1, keyboard::physical_legend(position)));
-                            ui.label(format!("{} → {}", before.map(|v| v.to_string()).unwrap_or_else(|| "未取得".into()),
-                                after.map(|v| v.to_string()).unwrap_or_else(|| "未取得".into())));
-                            ui.label(match (before, after) { (Some(a), Some(b)) if a != b => "変化あり", (Some(_), Some(_)) => "変化なし", _ => "比較不可" });
-                            ui.end_row();
+                        if !changed.is_empty() {
+                            ui.colored_label(
+                                Palette::of(ui).warning,
+                                format!("変化した他のキー: {}", changed.join(" / ")),
+                            );
                         }
-                    });
+                    }
+                    if self.demo {
+                        ui.label(
+                            "DEMO: 以下は生成したシミュレーション値です。実機測定ではありません。",
+                        );
+                    }
+                    ui.label("全66キーの比較 · 公式配列の刻印");
+                    egui::Grid::new("held-key-comparison")
+                        .striped(true)
+                        .show(ui, |ui| {
+                            ui.strong("物理位置・刻印");
+                            ui.strong("前 → 後");
+                            ui.strong("変化");
+                            ui.end_row();
+                            for position in 0..66 {
+                                let before = held
+                                    .before
+                                    .as_ref()
+                                    .filter(|v| v.len() == 66)
+                                    .map(|v| v[position]);
+                                let after = held
+                                    .after
+                                    .as_ref()
+                                    .filter(|v| v.len() == 66)
+                                    .map(|v| v[position]);
+                                ui.label(format!(
+                                    "#{:02} · {}",
+                                    position + 1,
+                                    keyboard::physical_legend(position)
+                                ));
+                                ui.label(format!(
+                                    "{} → {}",
+                                    before
+                                        .map(|v| v.to_string())
+                                        .unwrap_or_else(|| "未取得".into()),
+                                    after
+                                        .map(|v| v.to_string())
+                                        .unwrap_or_else(|| "未取得".into())
+                                ));
+                                ui.label(match (before, after) {
+                                    (Some(a), Some(b)) if a != b => "変化あり",
+                                    (Some(_), Some(_)) => "変化なし",
+                                    _ => "比較不可",
+                                });
+                                ui.end_row();
+                            }
+                        });
                 }
                 ui.label(format!(
                     "段階: {:?} / 失敗時の段階: {:?}",
@@ -596,48 +713,22 @@ impl App {
     }
     fn input_test(&mut self, ui: &mut egui::Ui) {
         let enabled = !self.controller.blocked() && self.confirm.is_none();
-        Palette::of(ui).card().show(ui, |ui| {
-            ui.set_width(ui.available_width());
-            ui.strong("このアプリが受け取った入力");
-            ui.small("このウィンドウにフォーカスしてキーを押してください。入力元のデバイスは識別しません。");
-            ui.horizontal_wrapped(|ui| {
-                let (codes, ambiguous) = self.input_test.codes();
-                let names = codes.iter().map(|code| key_name(*code)).collect::<Vec<_>>().join(" / ");
-                ui.label(format!("押下中: {}", if names.is_empty() { "なし".into() } else { truncate(&names, 70) }));
-                if ambiguous { ui.small("修飾キーの左右は未識別"); }
-                if ui.button("表示を消す").clicked() { self.input_test.text.clear(); self.input_test.clear_held(); }
-            });
-            egui::ScrollArea::vertical().id_salt("input-transcript").max_height(52.).min_scrolled_height(52.)
-                .show(ui, |ui| {
-                    ui.set_min_height(52.);
-                    ui.label(if self.input_test.text.is_empty() { "受け取った文字がここに表示されます" } else { &self.input_test.text });
-                });
-            ui.small("文字はこの画面だけに保持します（最大256文字）。保存・送信はしません。");
-        });
-        Palette::of(ui).card().show(ui, |ui| {
-            ui.set_width(ui.available_width());
-            ui.horizontal_wrapped(|ui| {
-                ui.strong("参照する読み込み時の割り当て");
-                ui.add_enabled_ui(enabled, |ui| {
-                    for (i, label) in ["通常", "右 Fn", "左 Fn"].iter().enumerate() {
-                        crate::theme::choice_value(ui, &mut self.input_test.layer, i, *label);
-                    }
-                });
-            });
-            if !enabled {
-                ui.colored_label(Palette::of(ui).warning, "処理中・確認中は入力テストを停止しています。完了後に再開します。");
-            } else if self.controller.live {
-                ui.small(if self.demo { "DEMOの参照設定 · 同じ出力の位置は複数光ることがあります" } else { "読み込んだ設定を参照 · 同じ出力の位置は複数光ることがあります" });
+        if !enabled {
+            ui.small("入力テストを停止中");
+        } else if !self.controller.live {
+            ui.small("上の「読み込む」を押してください");
+        }
+        if let Some(editor) = &self.controller.editor {
+            let matches = if self.controller.live && enabled {
+                self.input_test.matches(&editor.baseline)
             } else {
-                ui.colored_label(Palette::of(ui).warning, "一致表示には、選択したデバイスを読み直してください。文字の受信だけ確認できます。");
-            }
-            if let Some(editor) = &self.controller.editor {
-                let matches = if self.controller.live && enabled { self.input_test.matches(&editor.baseline) } else { Default::default() };
-                keyboard::show_input(ui, &editor.baseline, self.input_test.layer, &matches);
-            } else { ui.label("設定を読み込むと、参照する66キーの配列を表示します。"); }
-            ui.small("出力との一致候補です。Fnレイヤーの実際の状態・センサー値は測定しません。");
-        });
-        ui.small("Fn・Caps Lock・OSに取られるショートカットは表示できない場合があります。貼り付け・IMEの操作は記録しません。");
+                Default::default()
+            };
+            Palette::of(ui).card().show(ui, |ui| {
+                ui.set_width(ui.available_width());
+                keyboard::show_input(ui, &editor.baseline, 0, &matches);
+            });
+        }
     }
     fn confirmation(&mut self, ctx: &egui::Context) {
         let Some(confirm) = self.confirm.take() else {

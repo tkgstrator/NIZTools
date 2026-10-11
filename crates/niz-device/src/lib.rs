@@ -6,6 +6,8 @@ pub use calibration::{
     TraceDirection, UnlockOutcome,
 };
 mod raw_thresholds;
+mod sensitivity;
+pub use sensitivity::{SensitivityPhase, SensitivityResult, SensitivityStatus};
 mod session;
 mod transport;
 pub use backup::{load_profile, save_backup};
@@ -18,16 +20,20 @@ pub struct Error {
     pub raw_reports: Vec<Vec<u8>>,
     pub began_write: bool,
     pub calibration: Option<Box<CalibrationStatus>>,
+    pub sensitivity: Option<Box<SensitivityStatus>>,
     pub backup_path: Option<std::path::PathBuf>,
+    pub(crate) passive_settle_complete: bool,
 }
 impl Error {
-    pub(crate) fn new(message: impl Into<String>) -> Self {
+    pub fn new(message: impl Into<String>) -> Self {
         Self {
             message: message.into(),
             raw_reports: vec![],
             began_write: false,
             backup_path: None,
             calibration: None,
+            sensitivity: None,
+            passive_settle_complete: false,
         }
     }
 }
@@ -54,5 +60,7 @@ mod event_tests;
 mod held_calibration_tests;
 #[cfg(test)]
 mod raw_threshold_tests;
+#[cfg(test)]
+mod sensitivity_tests;
 #[cfg(test)]
 mod tests;

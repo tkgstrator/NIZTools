@@ -1,6 +1,9 @@
 use crate::editor::Selection;
 use niz_core::Profile;
-use niz_device::{ApplyOutcome, CalibrationStatus, DeviceDescriptor, RawThresholds, SnapshotPaths};
+use niz_device::{
+    ApplyOutcome, CalibrationStatus, DeviceDescriptor, RawThresholds, SensitivityStatus,
+    SnapshotPaths,
+};
 use std::{
     path::PathBuf,
     sync::{Arc, atomic::AtomicBool},
@@ -32,6 +35,10 @@ pub enum Command {
         path: String,
     },
     ReadRawThresholds,
+    AdjustSensitivity {
+        backup: PathBuf,
+        coefficient: u8,
+    },
     Trial {
         draft: Profile,
         selection: Selection,
@@ -59,6 +66,7 @@ pub struct Request {
 pub struct Failure {
     pub message: String,
     pub calibration: Option<Box<CalibrationStatus>>,
+    pub sensitivity: Option<Box<SensitivityStatus>>,
     pub backup: Option<PathBuf>,
     pub began_write: bool,
     pub raw_reports: Vec<Vec<u8>>,
@@ -68,6 +76,7 @@ impl From<niz_device::Error> for Failure {
         Self {
             message: e.message,
             calibration: e.calibration,
+            sensitivity: e.sensitivity,
             backup: e.backup_path,
             began_write: e.began_write,
             raw_reports: e.raw_reports,
@@ -79,6 +88,7 @@ impl From<String> for Failure {
         Self {
             message,
             calibration: None,
+            sensitivity: None,
             backup: None,
             began_write: false,
             raw_reports: vec![],
@@ -109,6 +119,7 @@ pub enum Response {
         snapshot: Option<SnapshotPaths>,
     },
     Calibration(CalibrationStatus),
+    Sensitivity(SensitivityStatus),
     Finished(CalibrationStatus),
     Error(Failure),
     Shutdown,

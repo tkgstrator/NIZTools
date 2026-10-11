@@ -4,8 +4,6 @@ use std::collections::BTreeSet;
 
 #[derive(Default)]
 pub(crate) struct InputTest {
-    pub text: String,
-    pub layer: usize,
     held: BTreeSet<u8>,
     modifiers: egui::Modifiers,
     precise_modifiers: [bool; 4],
@@ -32,20 +30,6 @@ impl InputTest {
     }
     pub fn event(&mut self, event: &Event) {
         match event {
-            Event::Text(text) => {
-                self.text.push_str(text);
-                if self.text.chars().count() > 256 {
-                    self.text = self
-                        .text
-                        .chars()
-                        .rev()
-                        .take(256)
-                        .collect::<Vec<_>>()
-                        .into_iter()
-                        .rev()
-                        .collect();
-                }
-            }
             Event::Key {
                 key,
                 physical_key,
@@ -119,7 +103,7 @@ impl InputTest {
         (0..66)
             .filter(|slot| {
                 profile
-                    .definition(self.layer * 66 + slot)
+                    .definition(*slot)
                     .is_ok_and(|d| d.kind == 0 && d.keys.len() == 1 && codes.contains(&d.keys[0]))
             })
             .collect()
@@ -307,13 +291,13 @@ mod tests {
         assert!(t.matches(&p).is_empty());
     }
     #[test]
-    fn focus_loss_and_reference_change_clear_held_without_losing_local_unicode_text() {
+    fn focus_loss_and_reference_change_clear_held_and_text_does_not_create_a_key() {
         let mut t = InputTest::default();
         let p = Profile::demo();
         t.reference(Some(&p));
         t.event(&key(Key::A, Some(Key::A), true));
         t.event(&Event::Text("日本語🙂".repeat(100)));
-        assert_eq!(t.text.chars().count(), 256);
+        assert_eq!(t.codes().0, BTreeSet::from([43]));
         t.event(&Event::WindowFocused(false));
         assert!(t.codes().0.is_empty());
         t.event(&key(Key::S, Some(Key::S), true));
@@ -321,7 +305,7 @@ mod tests {
         changed.records[30][0][6] = 44;
         t.reference(Some(&changed));
         assert!(t.codes().0.is_empty());
-        assert_eq!(t.text.chars().count(), 256);
+        assert!(t.codes().0.is_empty());
     }
     #[test]
     fn clipboard_ime_and_unreported_vendor_keys_never_create_a_physical_match() {
@@ -337,7 +321,7 @@ mod tests {
             t.event(&event);
         }
         assert!(t.codes().0.is_empty());
-        assert!(t.text.is_empty());
+        assert!(t.codes().0.is_empty());
     }
     #[test]
     fn precise_last_modifier_release_does_not_revive_stale_aggregate_candidates() {

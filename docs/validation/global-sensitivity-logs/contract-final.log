@@ -1,0 +1,18 @@
+    Blocking waiting for file lock on build directory
+   Compiling niz-gui v0.1.0 (/Users/devonly/Developer/personal/NIZ/crates/niz-gui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.66s
+     Running tests/sensitivity.rs (target/debug/deps/sensitivity-dac6dc78a921be74)
+
+running 9 tests
+test worker_sensitivity_guards_requests_and_consumes_eligibility_exactly_once ... ok
+test worker_failure_keeps_complete_before_and_requires_new_read_before_retry ... ok
+test controller_unrelated_success_does_not_publish_sensitivity ... ok
+test controller_sensitivity_requires_pointer_exact_fresh_target_and_exclusive_ownership ... ok
+test reconcile_changed_descriptor_discards_old_sensitivity_source ... ok
+test controller_rejects_mismatched_coefficient_and_incomplete_success_but_retains_observations ... ok
+test controller_retains_failure_observation_then_invalidates_it_on_read_and_switch ... ok
+test controller_sensitivity_rejects_unsupported_or_detached_baseline ... ok
+test worker_calibration_wait_owns_device_against_sensitivity ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.91s
+

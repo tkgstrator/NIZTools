@@ -1,0 +1,59 @@
+COMMAND ['codesign', '--verify', '--deep', '--strict', '/Users/devonly/Developer/personal/NIZ/dist/NIZ Utility.app']
+COMMAND ['codesign', '--verify', '--strict', '/Users/devonly/Developer/personal/NIZ/dist/niz']
+COMMAND ['plutil', '-lint', '/Users/devonly/Developer/personal/NIZ/dist/NIZ Utility.app/Contents/Info.plist']
+/Users/devonly/Developer/personal/NIZ/dist/NIZ Utility.app/Contents/Info.plist: OK
+COMMAND ['lipo', '-archs', '/Users/devonly/Developer/personal/NIZ/dist/NIZ Utility.app/Contents/MacOS/niz-gui']
+x86_64 arm64
+COMMAND ['lipo', '-archs', '/Users/devonly/Developer/personal/NIZ/dist/niz']
+x86_64 arm64
+COMMAND ['ditto', '-x', '-k', '/Users/devonly/Developer/personal/NIZ/dist/NIZ-Utility-universal.zip', '/private/tmp/niz-global-sensitivity-20261011/release-extracted-final']
+COMMAND ['codesign', '--verify', '--deep', '--strict', '/private/tmp/niz-global-sensitivity-20261011/release-extracted-final/NIZ Utility.app']
+COMMAND ['arch', '-arm64', '/Users/devonly/Developer/personal/NIZ/dist/niz', '--help']
+ATOM66 macOS configuration utility. Ordinary hardware writes are UNQUALIFIED.
+
+Usage: niz <COMMAND>
+
+Commands:
+  devices           
+  info              
+  raw-thresholds    Read the exact Atom66 firmware's raw normal-scan threshold snapshot
+  backup            
+  inspect           
+  diff              
+  set               
+  swap              
+  trial-swap        
+  import            
+  apply             
+  restore           
+  trial-single-key  
+  help              Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help     Print help
+  -V, --version  Print version
+COMMAND ['arch', '-x86_64', '/Users/devonly/Developer/personal/NIZ/dist/niz', '--help']
+ATOM66 macOS configuration utility. Ordinary hardware writes are UNQUALIFIED.
+
+Usage: niz <COMMAND>
+
+Commands:
+  devices           
+  info              
+  raw-thresholds    Read the exact Atom66 firmware's raw normal-scan threshold snapshot
+  backup            
+  inspect           
+  diff              
+  set               
+  swap              
+  trial-swap        
+  import            
+  apply             
+  restore           
+  trial-single-key  
+  help              Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help     Print help
+  -V, --version  Print version
+Extracted GUI hash equals current packaged GUI: 2b31ebc21abfc4e63a068923cf8667723f543c7e7aabba51a265ad4166dffd34

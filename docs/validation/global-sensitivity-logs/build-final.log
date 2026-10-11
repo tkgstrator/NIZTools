@@ -1,0 +1,9 @@
+   Compiling niz-gui v0.1.0 (/Users/devonly/Developer/personal/NIZ/crates/niz-gui)
+    Finished `release` profile [optimized] target(s) in 8.69s
+   Compiling niz-gui v0.1.0 (/Users/devonly/Developer/personal/NIZ/crates/niz-gui)
+    Finished `release` profile [optimized] target(s) in 15.03s
+/Users/devonly/Developer/personal/NIZ/dist/NIZ Utility.app: replacing existing signature
+/Users/devonly/Developer/personal/NIZ/dist/niz: replacing existing signature
+/Users/devonly/Developer/personal/NIZ/dist/NIZ Utility.app/Contents/Info.plist: OK
+App: /Users/devonly/Developer/personal/NIZ/dist/NIZ Utility.app
+CLI: /Users/devonly/Developer/personal/NIZ/dist/niz

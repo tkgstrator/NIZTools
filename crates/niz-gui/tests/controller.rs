@@ -318,6 +318,7 @@ fn failure_preserves_original_phase_and_uncertain_unlock_for_display() {
         response: Response::Error(Failure {
             message: "original timeout".into(),
             calibration: Some(Box::new(s)),
+            sensitivity: None,
             backup: Some("backup.json".into()),
             began_write: true,
             raw_reports: vec![vec![1, 2, 3]],
@@ -383,6 +384,7 @@ fn terminal_cancel_failure_does_not_dispatch_another_unlock() {
         response: Response::Error(Failure {
             message: "short output".into(),
             calibration: Some(Box::new(s)),
+            sensitivity: None,
             backup: None,
             began_write: true,
             raw_reports: vec![],

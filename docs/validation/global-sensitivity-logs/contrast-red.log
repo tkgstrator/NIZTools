@@ -1,0 +1,22 @@
+   Compiling niz-gui v0.1.0 (/Users/devonly/Developer/personal/NIZ/crates/niz-gui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.22s
+     Running unittests src/lib.rs (target/debug/deps/niz_gui-ef2579533dad9ba6)
+
+running 1 test
+test app::tests::compact_threshold_global_result_uses_current_selected_from_to ... FAILED
+
+failures:
+
+---- app::tests::compact_threshold_global_result_uses_current_selected_from_to stdout ----
+
+thread 'app::tests::compact_threshold_global_result_uses_current_selected_from_to' (2287652) panicked at crates/niz-gui/src/app_tests.rs:1991:5:
+"適用" contrast 2.12 < 4.5: #22_30_38_FF on #B4_28_28_FF
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    app::tests::compact_threshold_global_result_uses_current_selected_from_to
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 70 filtered out; finished in 0.17s
+
+error: test failed, to rerun pass `-p niz-gui --lib`

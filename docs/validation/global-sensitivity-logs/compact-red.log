@@ -1,0 +1,29 @@
+   Compiling niz-gui v0.1.0 (/Users/devonly/Developer/personal/NIZ/crates/niz-gui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.84s
+     Running unittests src/lib.rs (target/debug/deps/niz_gui-ef2579533dad9ba6)
+
+running 2 tests
+test app::tests::compact_input_test_only_renders_the_keyboard_and_tracks_key_release ... FAILED
+test app::tests::compact_threshold_result_only_shows_selected_from_to_and_actions ... FAILED
+
+failures:
+
+---- app::tests::compact_input_test_only_renders_the_keyboard_and_tracks_key_release stdout ----
+
+thread 'app::tests::compact_input_test_only_renders_the_keyboard_and_tracks_key_release' (2241251) panicked at crates/niz-gui/src/app_tests.rs:2521:9:
+extra input UI: private test text
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- app::tests::compact_threshold_result_only_shows_selected_from_to_and_actions stdout ----
+
+thread 'app::tests::compact_threshold_result_only_shows_selected_from_to_and_actions' (2241252) panicked at crates/niz-gui/src/app_tests.rs:2538:5:
+assertion failed: h.visible("FROM: 30")
+
+
+failures:
+    app::tests::compact_input_test_only_renders_the_keyboard_and_tracks_key_release
+    app::tests::compact_threshold_result_only_shows_selected_from_to_and_actions
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 64 filtered out; finished in 1.55s
+
+error: test failed, to rerun pass `-p niz-gui --lib`

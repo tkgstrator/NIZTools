@@ -4,8 +4,8 @@ use crate::{
 };
 use niz_core::Profile;
 use niz_device::{
-    CalibrationPhase, CalibrationStatus, DeviceDescriptor, LiveBaseline, RawThresholds, Session,
-    supports_raw_thresholds,
+    CalibrationPhase, CalibrationStatus, DeviceDescriptor, LiveBaseline, RawThresholds,
+    SensitivityPhase, SensitivityStatus, Session, supports_raw_thresholds,
 };
 use std::{
     path::Path,
@@ -21,6 +21,11 @@ pub trait Backend {
     fn read(&mut self, path: &str) -> Result<(Profile, Arc<AtomicBool>), Failure>;
     fn baseline(&self) -> Option<&Profile>;
     fn read_raw_thresholds(&mut self) -> Result<(RawThresholds, RawThresholdSource), Failure>;
+    fn adjust_sensitivity(
+        &mut self,
+        backup: &Path,
+        coefficient: u8,
+    ) -> Result<SensitivityStatus, Failure>;
     fn trial(&mut self, selection: Selection, backup: &Path) -> Result<Response, Failure>;
     fn begin(&mut self, backup: &Path) -> Result<CalibrationStatus, Failure>;
     fn begin_held(&mut self, backup: &Path, position: usize) -> Result<CalibrationStatus, Failure>;
@@ -115,6 +120,7 @@ impl<B: Backend> Worker<B> {
         if matches!(
             r.command,
             Command::ReadRawThresholds
+                | Command::AdjustSensitivity { .. }
                 | Command::Trial { .. }
                 | Command::Begin { .. }
                 | Command::BeginHeld { .. }
@@ -177,6 +183,35 @@ impl<B: Backend> Worker<B> {
                     target,
                     source,
                 })
+            }
+            Command::AdjustSensitivity {
+                backup,
+                coefficient,
+            } => {
+                if !self.valid || active {
+                    return Err(fail("A fresh native baseline is required"));
+                }
+                if !(10..=40).contains(coefficient) {
+                    return Err(fail("Sensitivity coefficient must be in 10..40"));
+                }
+                let baseline = self
+                    .backend
+                    .baseline()
+                    .ok_or_else(|| fail("No native baseline"))?;
+                if !supports_raw_thresholds(&baseline.identity, &baseline.firmware)
+                    || baseline.group_count() != 3
+                    || self
+                        .attached_target
+                        .as_ref()
+                        .is_none_or(|t| t.identity != baseline.identity)
+                {
+                    return Err(fail("Sensitivity requires exact XRGB V1.0.48 / 0483:502a"));
+                }
+                // Consume eligibility before the backend can attempt any physical send.
+                self.valid = false;
+                Ok(Response::Sensitivity(
+                    self.backend.adjust_sensitivity(backup, *coefficient)?,
+                ))
             }
             Command::Trial {
                 draft,
@@ -299,6 +334,22 @@ impl Backend for NativeBackend {
                 Err(error.into())
             }
         }
+    }
+    fn adjust_sensitivity(
+        &mut self,
+        backup: &Path,
+        coefficient: u8,
+    ) -> Result<SensitivityStatus, Failure> {
+        let baseline = self
+            .baseline
+            .take()
+            .ok_or_else(|| Failure::from("No current native baseline".to_string()))?;
+        let result = self
+            .session()?
+            .adjust_sensitivity(&baseline, backup, coefficient);
+        // The session is consumed after this bounded owned transaction; another adjustment requires Read.
+        self.session = None;
+        result.map(|r| r.status).map_err(Into::into)
     }
     fn trial(&mut self, s: Selection, backup: &Path) -> Result<Response, Failure> {
         let b = self
@@ -447,6 +498,41 @@ impl Backend for DemoBackend {
             reports,
         )?;
         Ok((snapshot, RawThresholdSource::Simulation))
+    }
+    fn adjust_sensitivity(
+        &mut self,
+        _: &Path,
+        coefficient: u8,
+    ) -> Result<SensitivityStatus, Failure> {
+        if self.profile.is_none() {
+            return Err(Failure::from("Read the demo first".to_string()));
+        }
+        let mut status = SensitivityStatus::preparing(coefficient);
+        // Explicitly generated examples, not captured hardware measurements or a current coefficient read.
+        status.before = Some((0..66).map(|i| 14 + (i % 12) as u8).collect());
+        if self.cancel.load(Ordering::Acquire) {
+            status.phase = SensitivityPhase::Aborted;
+            status.cancellation_requested = true;
+            let mut failure =
+                Failure::from("DEMO: sensitivity canceled before simulated send".to_string());
+            failure.sensitivity = Some(Box::new(status));
+            return Err(failure);
+        }
+        status.attempted = true;
+        status.sent = true;
+        status.after = Some(
+            status
+                .before
+                .as_ref()
+                .unwrap()
+                .iter()
+                .map(|&v| ((u16::from(v) * u16::from(coefficient)) / 24).clamp(9, 255) as u8)
+                .collect(),
+        );
+        status.phase = SensitivityPhase::Complete;
+        status.settings_verified = true;
+        status.lighting_verified = true;
+        Ok(status)
     }
     fn trial(&mut self, s: Selection, backup: &Path) -> Result<Response, Failure> {
         let p = self

@@ -61,6 +61,7 @@ pub struct Session {
     pub(crate) last_read: Option<Profile>,
     pub(crate) backup: BackupWriter,
     pub(crate) calibration: Option<crate::calibration::CalibrationRun>,
+    pub(crate) sensitivity: Option<crate::SensitivityStatus>,
     pub(crate) cancel_flag: std::sync::Arc<std::sync::atomic::AtomicBool>,
 }
 impl Session {
@@ -78,6 +79,7 @@ impl Session {
             last_read: None,
             backup: save_backup,
             calibration: None,
+            sensitivity: None,
             cancel_flag: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
         }
     }
@@ -86,6 +88,11 @@ impl Session {
         self.backup = backup;
     }
     pub(crate) fn ready(&self) -> Result<()> {
+        if self.sensitivity_active() {
+            return Err(Error::new(
+                "session exclusively owned by sensitivity adjustment; ordinary operations unavailable",
+            ));
+        }
         if self
             .calibration
             .as_ref()
@@ -116,6 +123,14 @@ impl Session {
         framed[1..].copy_from_slice(r);
         self.trace(crate::TraceDirection::Output, r.to_vec(), None);
         let result = self.io.write(&framed);
+        if self.sensitivity_active()
+            && let Some(trace) = self.sensitivity.as_mut().and_then(|s| s.trace.last_mut())
+        {
+            trace.outcome = Some(match &result {
+                Ok(n) => format!("output returned {n}/65 bytes"),
+                Err(e) => format!("output returned error: {e}; physical delivery unknown"),
+            });
+        }
         if let Some(run) = self.calibration.as_mut()
             && !matches!(
                 run.status.phase,
@@ -172,7 +187,9 @@ impl Session {
         Ok(r[..64].try_into().expect("64-byte slice"))
     }
     fn prepare_transaction(&mut self) -> Result<()> {
-        if self
+        if self.sensitivity_active() {
+            self.require_quiet_sensitivity_input()
+        } else if self
             .calibration
             .as_ref()
             .is_some_and(|run| run.status.phase != crate::CalibrationPhase::Complete)
@@ -300,6 +317,21 @@ impl Session {
         })
     }
     fn settle_failed_raw_threshold_read(&mut self, error: &mut Error) {
+        self.settle_failed_transaction_input(
+            error,
+            "DC delivery may have occurred",
+            "passive capture after failed DC read",
+        );
+        error
+            .message
+            .push_str("; scanner restoration not confirmed");
+    }
+    pub(crate) fn settle_failed_transaction_input(
+        &mut self,
+        error: &mut Error,
+        uncertainty: &str,
+        trace_note: &str,
+    ) {
         const BUDGET_MS: u64 = 2000;
         const STEP_MS: u64 = 50;
         const MAX_ATTEMPTS: usize = 40;
@@ -323,7 +355,7 @@ impl Session {
                         self.trace(
                             crate::TraceDirection::Input,
                             bytes.clone(),
-                            Some("passive capture after failed DC read".into()),
+                            Some(trace_note.into()),
                         );
                         error.raw_reports.push(bytes);
                         captured += 1;
@@ -341,8 +373,9 @@ impl Session {
             requested_wait += wait;
         }
         let elapsed = self.io.now_ms().saturating_sub(started);
+        error.passive_settle_complete = true;
         error.message.push_str(&format!(
-            "; DC delivery may have occurred; passive settling held the owned session/lock: {elapsed} ms elapsed, {requested_wait} ms requested waits, {attempts} probes, {captured} captured reports; scanner restoration not confirmed",
+            "; {uncertainty}; passive settling held the owned session/lock: {elapsed} ms elapsed, {requested_wait} ms requested waits, {attempts} probes, {captured} captured reports",
         ));
         if captured == MAX_CAPTURED_REPORTS {
             error.message.push_str("; passive report limit reached");

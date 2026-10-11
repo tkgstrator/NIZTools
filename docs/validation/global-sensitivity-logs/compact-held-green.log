@@ -1,0 +1,23 @@
+   Compiling niz-gui v0.1.0 (/Users/devonly/Developer/personal/NIZ/crates/niz-gui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.33s
+     Running unittests src/lib.rs (target/debug/deps/niz_gui-ef2579533dad9ba6)
+
+running 15 tests
+test app::tests::focused_input_test_ignores_text_and_releases_the_held_output ... ok
+test input_test::tests::focus_loss_and_reference_change_clear_held_and_text_does_not_create_a_key ... ok
+test app::tests::held_key_calibration_is_visible_without_legacy_full_write_controls ... ok
+test app::tests::held_calibration_cancel_keeps_the_selected_position_and_reports_missing_comparison ... ok
+test app::tests::held_result_uses_complete_after_values_and_warns_about_neighbor_changes ... ok
+test app::tests::held_result_is_invalidated_on_device_removal ... ok
+test app::tests::held_result_is_invalidated_on_switch_to_second_device ... ok
+test app::tests::held_result_never_claims_no_change_from_partial_read_and_keeps_complete_observation_on_failure ... ok
+test app::tests::held_result_is_invalidated_on_same_path_product_change ... ok
+test app::tests::held_result_is_invalidated_on_same_path_identity_change ... ok
+test app::tests::held_result_is_cleared_before_advancing_read_generation ... ok
+test app::tests::held_results_expose_all_66_literal_pairs_in_collapsed_details ... ok
+test app::tests::held_execute_rejects_real_focused_keyboard_and_accessibility_actions ... ok
+test app::tests::held_changing_controls_respect_popup_confirmation_close_and_pending_guards ... ok
+test app::tests::held_calibration_prepares_frozen_target_and_finishes_without_an_os_keypress ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 50 filtered out; finished in 3.20s
+
