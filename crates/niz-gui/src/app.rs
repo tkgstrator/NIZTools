@@ -1,6 +1,7 @@
 use crate::{
     controller::{Activation, Controller, ReadChoice, TrialApproval},
-    editor::{Mode, TriggerGuide, action_label, exact_trial, regenerate, trigger_guide},
+    editor::{Mode, TriggerGuide, action_label, exact_trial, trigger_guide},
+    keyboard::{self, KeyboardState},
     protocol::Target,
     worker::{ChannelPort, spawn},
 };
@@ -26,6 +27,7 @@ pub struct App {
     confirm: Option<Confirm>,
     calibration_ack: bool,
     a_test: String,
+    keyboard: KeyboardState,
 }
 impl App {
     pub fn new(cc: &eframe::CreationContext<'_>, demo: bool) -> Self {
@@ -68,6 +70,7 @@ impl App {
             confirm: None,
             calibration_ack: false,
             a_test: String::new(),
+            keyboard: KeyboardState::default(),
         }
     }
     fn result(&mut self, result: Result<(), String>) {
@@ -158,7 +161,10 @@ impl App {
     }
     fn assignment(&mut self, ui: &mut egui::Ui) {
         ui.heading("キーの出力を変更");
-        let blocked = self.controller.blocked();
+        let operation_blocked = self.controller.blocked();
+        let blocked = operation_blocked || self.confirm.is_some();
+        // Remember popup ownership before selectors can close it this frame.
+        let popup_was_open = egui::Popup::is_any_open(ui.ctx());
         let Some(e) = self.controller.editor.as_mut() else {
             ui.add_space(16.);
             ui.label("上でデバイスを選び、読み込んでください。");
@@ -168,24 +174,30 @@ impl App {
         let mut edit = false;
         let mut trial = false;
         ui.add_enabled_ui(!blocked,|ui| {
+            let mut mode = e.selection.mode;
             ui.horizontal_wrapped(|ui| {
-                ui.selectable_value(&mut e.selection.mode,Mode::Reassign,"出力を変更");
-                ui.selectable_value(&mut e.selection.mode,Mode::Swap,"2つの位置を交換");
+                ui.selectable_value(&mut mode,Mode::Reassign,"出力を変更");
+                ui.selectable_value(&mut mode,Mode::Swap,"2つの位置を交換");
             });
+            self.keyboard.set_mode(e, mode);
+            let mut layer = e.selection.layer;
             ui.horizontal_wrapped(|ui| {
                 ui.label("レイヤー");
-                for (i,label) in ["通常","右 Fn","左 Fn"].iter().enumerate() { ui.selectable_value(&mut e.selection.layer,i,*label); }
+                for (i,label) in ["通常","右 Fn","左 Fn"].iter().enumerate() { ui.selectable_value(&mut layer,i,*label); }
             });
+            e.select_layer(layer);
             ui.group(|ui| {
                 ui.columns(2,|columns| {
                     columns[0].strong("From · 変更するキーの位置");
-                    slot_selector(&mut columns[0],"from",&mut e.selection.from,&e.draft,e.selection.layer);
+                    if let Some(slot) = slot_selector(&mut columns[0],"from",e.selection.from,&e.draft,e.selection.layer) { e.select_from(slot); }
+                    columns[0].small(format!("刻印（公式配列）: {}", keyboard::key_view(e, e.selection.from).legend));
                     match e.selection.mode {
                         Mode::Reassign => {
                             columns[1].strong("To · 新しい出力");
-                            egui::ComboBox::from_id_salt("output").width(230.).selected_text(key_name(e.selection.to_code)).show_ui(&mut columns[1],|ui| {
+                            egui::ComboBox::from_id_salt("output").width(230.).selected_text(if e.output_ready() { key_name(e.selection.to_code) } else { "現在の設定を保持" }).show_ui(&mut columns[1],|ui| {
                                 for code in (1..=74).chain([156,166]) {
-                                    if ui.selectable_value(&mut e.selection.to_code,code,key_name(code)).clicked() {
+                                    if ui.selectable_label(e.output_ready() && e.selection.to_code == code,key_name(code)).clicked() {
+                                        e.choose_output(code);
                                         ui.close();
                                     }
                                 }
@@ -193,12 +205,12 @@ impl App {
                         }
                         Mode::Swap => {
                             columns[1].strong("To · 交換先の位置");
-                            slot_selector(&mut columns[1],"to",&mut e.selection.to_position,&e.draft,e.selection.layer);
+                            if let Some(slot) = slot_selector(&mut columns[1],"to",e.selection.to_position,&e.draft,e.selection.layer) { e.selection.to_position = slot; }
+                            columns[1].small(format!("刻印（公式配列）: {}", keyboard::key_view(e, e.selection.to_position).legend));
                         }
                     }
                 });
-                ui.small("位置番号と現在の割り当てを表示しています。キーの刻印との対応は未確認です。");
-                let next=regenerate(&e.draft,e.selection);
+                let next=e.proposed();
                 match &next {
                     Ok(next) => {
                         let changes=e.draft.differences(next).unwrap_or_default();
@@ -213,10 +225,13 @@ impl App {
                             if changes.iter().any(|i|i/66!=e.selection.layer) {ui.colored_label(warning(),"Fn の移動は3レイヤーすべてに反映されます。実機での適用は未対応です。");}
                         }
                     }
+                    Err(_) if !e.output_ready() && e.selection.mode == Mode::Reassign => {ui.small("現在の設定はそのまま保持されます。変更するときだけ、新しい出力を選んでください。");}
                     Err(_) => {ui.colored_label(warning(),"この割り当ては変更できません。既存のデータを保持します。");}
                 }
                 if ui.add_enabled(next.as_ref().is_ok_and(|p|p.records!=e.draft.records),egui::Button::new("変更を追加")).clicked() {edit=true;}
             });
+            keyboard::show(ui, e, &mut self.keyboard,
+                operation_blocked, self.confirm.is_some(), popup_was_open || egui::Popup::is_any_open(ui.ctx()));
             ui.horizontal(|ui| {
                 if ui.add_enabled(e.can_undo(),egui::Button::new("元に戻す")).clicked() {e.undo();}
                 if ui.add_enabled(e.can_redo(),egui::Button::new("やり直す")).clicked() {e.redo();}
@@ -617,23 +632,23 @@ fn change_label(baseline: &Profile, draft: &Profile, index: usize) -> String {
 fn slot_selector(
     ui: &mut egui::Ui,
     id: &str,
-    position: &mut usize,
+    position: usize,
     profile: &Profile,
     layer: usize,
-) {
+) -> Option<usize> {
+    let mut selected = None;
     egui::ComboBox::from_id_salt(id)
         .width(230.)
         .selected_text(format!(
             "位置 #{:02} · 現在 {}",
-            *position + 1,
-            action_label(profile, layer * 66 + *position)
+            position + 1,
+            action_label(profile, layer * 66 + position)
         ))
         .show_ui(ui, |ui| {
             for i in 0..66 {
                 if ui
-                    .selectable_value(
-                        position,
-                        i,
+                    .selectable_label(
+                        position == i,
                         format!(
                             "位置 #{:02} · 現在 {}",
                             i + 1,
@@ -642,10 +657,12 @@ fn slot_selector(
                     )
                     .clicked()
                 {
+                    selected = Some(i);
                     ui.close();
                 }
             }
         });
+    selected
 }
 fn target_details(ui: &mut egui::Ui, target: &Target) {
     ui.strong(format!(

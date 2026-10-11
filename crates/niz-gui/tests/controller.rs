@@ -564,3 +564,36 @@ fn approval_cannot_apply_a_draft_changed_after_confirmation() {
     assert!(c.approve_trial(approval).is_err());
     assert_eq!(c.port.requests.len(), n);
 }
+
+#[test]
+fn board_navigation_sends_no_request_and_cannot_reuse_an_earlier_trial_approval() {
+    use niz_gui::keyboard::KeyboardState;
+    let mut c = two_devices();
+    let approval = c.prepare_trial("backup".into()).unwrap();
+    let requests = c.port.requests.len();
+    let raw = c.editor.as_ref().unwrap().draft.reports();
+    let mut board = KeyboardState::default();
+    assert!(board.click(c.editor.as_mut().unwrap(), 2, false, false, false));
+    assert_eq!(c.port.requests.len(), requests);
+    assert_eq!(c.editor.as_ref().unwrap().draft.reports(), raw);
+    assert!(c.approve_trial(approval).is_err());
+    assert_eq!(c.port.requests.len(), requests);
+    assert!(c.editor.as_mut().unwrap().undo());
+    assert!(
+        !c.editor.as_mut().unwrap().undo(),
+        "navigation created no extra history entry"
+    );
+}
+#[test]
+fn detached_draft_can_navigate_but_never_dispatches_a_trial_or_calibration() {
+    use niz_gui::keyboard::KeyboardState;
+    let mut c = two_devices();
+    c.select_device("B".into()).unwrap();
+    let requests = c.port.requests.len();
+    let mut board = KeyboardState::default();
+    assert!(board.click(c.editor.as_mut().unwrap(), 2, false, false, false));
+    assert_eq!(c.editor.as_ref().unwrap().selection.from, 2);
+    assert!(c.trial("backup".into()).is_err());
+    assert!(c.begin("backup".into(), Activation::Pointer).is_err());
+    assert_eq!(c.port.requests.len(), requests);
+}

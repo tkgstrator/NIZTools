@@ -27,29 +27,91 @@ pub struct Editor {
     pub baseline: Profile,
     pub draft: Profile,
     pub selection: Selection,
+    output_ready: bool,
     undo: Vec<Profile>,
     redo: Vec<Profile>,
 }
 impl Editor {
     pub fn new(p: Profile) -> Self {
-        Self {
+        let mut editor = Self {
             baseline: p.clone(),
             draft: p,
             selection: Selection::default(),
+            output_ready: false,
             undo: vec![],
             redo: vec![],
-        }
+        };
+        editor.load_selected_output();
+        editor
     }
     pub fn edit(&mut self) -> Result<(), String> {
-        let p = regenerate(&self.draft, self.selection)?;
+        let p = self.proposed()?;
         self.commit(p);
         Ok(())
+    }
+    /// Selecting a slot opens its current draft setting without changing raw records or history.
+    pub fn select_from(&mut self, slot: usize) -> bool {
+        if slot >= 66 || self.selection.from == slot {
+            return false;
+        }
+        self.selection.from = slot;
+        self.load_selected_output();
+        true
+    }
+    pub fn select_layer(&mut self, layer: usize) -> bool {
+        if layer >= 3 || layer >= self.draft.group_count() || self.selection.layer == layer {
+            return false;
+        }
+        self.selection.layer = layer;
+        self.load_selected_output();
+        true
+    }
+    fn load_selected_output(&mut self) {
+        self.output_ready = false;
+        if let Ok(definition) = self
+            .draft
+            .definition(self.selection.layer * 66 + self.selection.from)
+            && definition.kind == 0
+            && let [code] = definition.keys.as_slice()
+            && selectable_output(*code)
+        {
+            self.selection.to_code = *code;
+            self.output_ready = true;
+        }
+    }
+    pub fn choose_output(&mut self, code: u8) {
+        if selectable_output(code) {
+            self.selection.to_code = code;
+            self.output_ready = true;
+        }
+    }
+    pub fn output_ready(&self) -> bool {
+        self.output_ready
+    }
+    pub fn proposed(&self) -> Result<Profile, String> {
+        if self.selection.mode == Mode::Reassign && !self.output_ready {
+            return Err(
+                "The current action is preserved. Choose an output explicitly to replace it."
+                    .into(),
+            );
+        }
+        regenerate(&self.draft, self.selection)
     }
     fn commit(&mut self, p: Profile) {
         if p.records != self.draft.records {
             self.undo.push(self.draft.clone());
-            self.draft = p;
+            self.replace_draft(p);
             self.redo.clear();
+        }
+    }
+    /// Record transitions reopen the selected setting only when its raw data changed.
+    /// Unrelated edits leave a pending output choice intact.
+    fn replace_draft(&mut self, p: Profile) {
+        let index = self.selection.layer * 66 + self.selection.from;
+        let selected_changed = self.draft.records.get(index) != p.records.get(index);
+        self.draft = p;
+        if selected_changed {
+            self.load_selected_output();
         }
     }
     pub fn dirty(&self) -> bool {
@@ -58,7 +120,7 @@ impl Editor {
     pub fn undo(&mut self) -> bool {
         if let Some(p) = self.undo.pop() {
             self.redo.push(self.draft.clone());
-            self.draft = p;
+            self.replace_draft(p);
             true
         } else {
             false
@@ -67,7 +129,7 @@ impl Editor {
     pub fn redo(&mut self) -> bool {
         if let Some(p) = self.redo.pop() {
             self.undo.push(self.draft.clone());
-            self.draft = p;
+            self.replace_draft(p);
             true
         } else {
             false
@@ -85,7 +147,7 @@ impl Editor {
     }
     pub fn accept_applied(&mut self, p: Profile) {
         self.baseline = p.clone();
-        self.draft = p;
+        self.replace_draft(p);
         self.undo.clear();
         self.redo.clear();
     }
@@ -95,6 +157,9 @@ impl Editor {
     pub fn can_redo(&self) -> bool {
         !self.redo.is_empty()
     }
+}
+fn selectable_output(code: u8) -> bool {
+    (1..=74).contains(&code) || [156, 166].contains(&code)
 }
 pub fn regenerate(p: &Profile, s: Selection) -> Result<Profile, String> {
     if s.layer >= 3 || s.from >= 66 || (s.mode == Mode::Swap && s.to_position >= 66) {

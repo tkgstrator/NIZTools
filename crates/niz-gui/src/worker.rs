@@ -300,14 +300,10 @@ impl Backend for DemoBackend {
     }
     fn read(&mut self, _: &str) -> Result<(Profile, Arc<AtomicBool>), Failure> {
         if self.profile.is_none() {
-            let mut p = Profile::demo();
-            p.firmware = "66EC(XRGB)BLe;V1.0.48;V1.0;".into();
-            p.identity = niz_core::DeviceIdentity {
-                vendor_id: 0x0483,
-                product_id: 0x502a,
-                usage_page: 0x8c,
-                usage: 1,
-            };
+            let p = Profile::from_json(include_str!(
+                "../../../docs/validation/fixtures/atom66-xrgb-ble-v1.0.48-settings.json"
+            ))
+            .map_err(|error| Failure::from(error.to_string()))?;
             self.profile = Some(p);
         }
         self.cancel = Arc::new(AtomicBool::new(false));

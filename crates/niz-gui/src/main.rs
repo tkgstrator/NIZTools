@@ -3,7 +3,7 @@ fn main() -> eframe::Result {
     let options = eframe::NativeOptions {
         renderer: eframe::Renderer::Glow,
         viewport: eframe::egui::ViewportBuilder::default()
-            .with_inner_size([860., 740.])
+            .with_inner_size([960., 820.])
             .with_min_inner_size([700., 580.]),
         ..Default::default()
     };
