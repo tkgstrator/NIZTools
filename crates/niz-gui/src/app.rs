@@ -883,11 +883,14 @@ impl App {
                 if self.controller.pending.is_some() {
                     ui.spinner();
                 }
-                ui.colored_label(color, RichText::new(label).size(12.));
+                ui.colored_label(color, label);
                 if self.demo {
-                    ui.small("実際のキーボードには接続しません");
+                    ui.label("実際のキーボードには接続しません");
                 }
-                egui::CollapsingHeader::new("デバイス情報").show(ui, |ui| {
+                egui::CollapsingHeader::new(
+                    RichText::new("デバイス情報").text_style(egui::TextStyle::Body),
+                )
+                .show(ui, |ui| {
                     if let Some(device) = self.controller.selected_device() {
                         target_details(ui, &Target::from(device));
                     }
