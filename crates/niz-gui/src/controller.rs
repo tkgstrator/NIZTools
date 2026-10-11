@@ -64,7 +64,7 @@ pub struct Controller<P: Port> {
     next_operation: u64,
     operation: Option<Pending>,
     editor_path: Option<String>,
-    cancel_requested: bool,
+    pub(crate) cancel_requested: bool,
 }
 impl<P: Port> Controller<P> {
     pub fn new(port: P) -> Self {
@@ -99,7 +99,11 @@ impl<P: Port> Controller<P> {
         }) || self.operation.as_ref().is_some_and(|p| {
             matches!(
                 p.command,
-                Command::Begin { .. } | Command::Held | Command::Finish | Command::Cancel
+                Command::Begin { .. }
+                    | Command::BeginHeld { .. }
+                    | Command::Held
+                    | Command::Finish
+                    | Command::Cancel
             )
         })
     }
@@ -131,6 +135,7 @@ impl<P: Port> Controller<P> {
             Command::ReadRawThresholds
             | Command::Trial { .. }
             | Command::Begin { .. }
+            | Command::BeginHeld { .. }
             | Command::Held
             | Command::Finish
             | Command::Cancel => self.attached_target.clone(),
@@ -167,6 +172,7 @@ impl<P: Port> Controller<P> {
         }
         if self.selected_path.as_ref() != Some(&path) {
             self.raw_thresholds = None;
+            self.calibration = None;
             self.selected_path = Some(path);
             self.live = false;
             self.message="デバイスを切り替えました。編集内容は保持しています。選択したデバイスを読み込んでください。".into();
@@ -183,6 +189,7 @@ impl<P: Port> Controller<P> {
             .is_some_and(|path| !devices.iter().any(|d| &d.path == path))
         {
             self.selected_path = None;
+            self.calibration = None;
             self.live = false;
             self.message="選択したデバイスが見つかりません。編集内容は保持しています。接続を確認して読み込んでください。".into();
         }
@@ -191,6 +198,7 @@ impl<P: Port> Controller<P> {
             .as_ref()
             .is_some_and(|target| !devices.iter().any(|d| Target::from(d) == *target))
         {
+            self.calibration = None;
             self.live = false;
         }
         self.devices = devices;
@@ -307,6 +315,7 @@ impl<P: Port> Controller<P> {
         }
         self.selected_path = Some(path.clone());
         self.raw_thresholds = None;
+        self.calibration = None;
         self.generation += 1;
         self.live = false;
         self.dispatch(Command::Read { path }, Some(choice))
@@ -316,6 +325,30 @@ impl<P: Port> Controller<P> {
         self.approve_trial(approval)
     }
     pub fn begin(&mut self, backup: PathBuf, a: Activation) -> Result<(), String> {
+        self.prepare_calibration(a)?;
+        self.dispatch(Command::Begin { backup }, None)?;
+        self.live = false;
+        self.message="Preparing durable backup and released calibration. Wait for the device operation to return.".into();
+        Ok(())
+    }
+    pub fn begin_held(
+        &mut self,
+        backup: PathBuf,
+        position: usize,
+        a: Activation,
+    ) -> Result<(), String> {
+        if position >= 66 {
+            return Err("Select a physical key in 0..65".into());
+        }
+        self.prepare_calibration(a)?;
+        self.dispatch(Command::BeginHeld { backup, position }, None)?;
+        self.live = false;
+        self.message =
+            "Preparing held-key calibration with all keys released; retaining release calibration."
+                .into();
+        Ok(())
+    }
+    fn prepare_calibration(&mut self, a: Activation) -> Result<(), String> {
         self.available()?;
         if a != Activation::Pointer {
             return Err("Calibration requires a mouse or trackpad click".into());
@@ -340,9 +373,7 @@ impl<P: Port> Controller<P> {
         self.cancel.store(false, Ordering::Release);
         self.cancel_requested = false;
         self.failure = None;
-        self.dispatch(Command::Begin { backup }, None)?;
-        self.live = false;
-        self.message="Preparing durable backup and released calibration. Wait for the device operation to return.".into();
+        self.calibration = None;
         Ok(())
     }
     fn stage(&self, phase: CalibrationPhase, a: Activation) -> Result<(), String> {
@@ -619,6 +650,17 @@ impl<P: Port> Controller<P> {
     }
 }
 pub fn calibration_message(s: &CalibrationStatus) -> String {
+    if let Some(held) = &s.held_key {
+        if s.phase == CalibrationPhase::AwaitingHeldKeys {
+            return format!(
+                "Hold only physical key #{} and click Execute with the mouse. Other keys may also change; analog calibration cannot be restored.",
+                held.position + 1
+            );
+        }
+        if s.phase == CalibrationPhase::Complete {
+            return "Held-key calibration completed. Compare all 66 normal-scan values below; confirm the physical response in Input Test. Read a fresh baseline before editing.".into();
+        }
+    }
     match s.phase {
  CalibrationPhase::AwaitingHeldKeys=>"Released stage returned DA. Hold the affected physical key(s), then click the held-stage button with the mouse.".into(),
  CalibrationPhase::AwaitingFinish=>"Held stage returned DE. Release every key, then click Finish.".into(),

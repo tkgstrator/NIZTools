@@ -1,0 +1,34 @@
+   Compiling niz-gui v0.1.0 (/Users/devonly/Developer/personal/NIZ/crates/niz-gui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.23s
+     Running unittests src/lib.rs (target/debug/deps/niz_gui-ef2579533dad9ba6)
+
+running 4 tests
+
+thread 'app::tests::held_result_is_invalidated_on_same_path_identity_change' (2201765) panicked at crates/niz-gui/src/app_tests.rs:2456:9:
+change 2: stale post-observation under new source
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test app::tests::held_result_is_invalidated_on_same_path_identity_change ... FAILED
+
+thread 'app::tests::held_result_is_invalidated_on_same_path_product_change' (2201766) panicked at crates/niz-gui/src/app_tests.rs:2456:9:
+change 1: stale post-observation under new source
+test app::tests::held_result_is_invalidated_on_same_path_product_change ... FAILED
+
+thread 'app::tests::held_result_is_invalidated_on_device_removal' (2201764) panicked at crates/niz-gui/src/app_tests.rs:2456:9:
+change 3: stale post-observation under new source
+test app::tests::held_result_is_invalidated_on_device_removal ... FAILED
+
+thread 'app::tests::held_result_is_invalidated_on_switch_to_second_device' (2201767) panicked at crates/niz-gui/src/app_tests.rs:2456:9:
+change 0: stale post-observation under new source
+test app::tests::held_result_is_invalidated_on_switch_to_second_device ... FAILED
+
+failures:
+
+failures:
+    app::tests::held_result_is_invalidated_on_device_removal
+    app::tests::held_result_is_invalidated_on_same_path_identity_change
+    app::tests::held_result_is_invalidated_on_same_path_product_change
+    app::tests::held_result_is_invalidated_on_switch_to_second_device
+
+test result: FAILED. 0 passed; 4 failed; 0 ignored; 0 measured; 59 filtered out; finished in 1.57s
+
+error: test failed, to rerun pass `-p niz-gui --lib`

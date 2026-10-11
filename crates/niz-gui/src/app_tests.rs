@@ -498,6 +498,7 @@ fn default_collapsed_views_have_no_wheel_scroll_range() {
                     lighting_verified: false,
                     original_error: None,
                     trace: vec![],
+                    held_key: None,
                 });
                 if state >= 9 {
                     h.app.controller.pending = Some(crate::protocol::Ticket {
@@ -828,6 +829,7 @@ fn active_calibration_keeps_its_stage_visible_when_assignment_tab_is_clicked() {
         lighting_verified: false,
         original_error: None,
         trace: vec![],
+        held_key: None,
     });
     h.render(vec![]);
     h.click("キーの割り当て");
@@ -1093,6 +1095,7 @@ fn appearance_switch_preserves_active_calibration_phase_and_cancel_visibility() 
         lighting_verified: false,
         original_error: None,
         trace: vec![],
+        held_key: None,
     });
     let generation = h.app.controller.generation;
     h.render(vec![]);
@@ -1383,7 +1386,7 @@ fn raw_threshold_read_is_manual_and_demo_values_are_explicitly_simulated() {
     h.click("入力しきい値");
     assert!(h.visible("しきい値: 未取得"));
     assert!(h.visible("しきい値を読み込む"));
-    assert!(h.visible("しきい値の変更は未対応です"));
+    assert!(h.visible("すべてのキーを離して準備"));
     h.click("S\n#32");
     assert!(h.visible("しきい値: 未取得"));
     h.click("しきい値を読み込む");
@@ -1394,7 +1397,7 @@ fn raw_threshold_read_is_manual_and_demo_values_are_explicitly_simulated() {
     assert!(h.visible("しきい値: 13"));
     h.click("=\n#13");
     assert!(h.visible("しきい値: 60"));
-    assert!(h.visible("しきい値の変更は未対応です"));
+    assert!(h.visible("すべてのキーを離して準備"));
     h.click("生しきい値の読み取り記録");
     for _ in 0..8 {
         h.render(vec![]);
@@ -1719,7 +1722,7 @@ fn raw_threshold_snapshot_fits_default_and_remains_reachable_at_minimum() {
 }
 
 #[test]
-fn per_key_threshold_capability_is_visible_without_legacy_write_controls() {
+fn held_key_calibration_is_visible_without_legacy_full_write_controls() {
     for theme in [egui::Theme::Light, egui::Theme::Dark] {
         for live in [true, false] {
             let mut h = Harness::loaded([960., 820.]);
@@ -1728,7 +1731,7 @@ fn per_key_threshold_capability_is_visible_without_legacy_write_controls() {
             h.app.controller.live = live;
             h.render(vec![]);
             assert!(h.visible("選択中のキー: #31 · A"));
-            assert!(h.visible("しきい値の変更は未対応です"));
+            assert!(h.visible("すべてのキーを離して準備"));
             assert!(h.visible("しきい値について"));
             assert!(h.visible("入力しきい値"));
             for _ in 0..8 {
@@ -2134,4 +2137,374 @@ fn contrast(foreground: Color32, background: Color32) -> f64 {
         std::array::from_fn(|i| f64::from(fg[i]) / 255. * alpha + bg_rgb[i] * (1. - alpha));
     let (a, b) = (luminance(fg_rgb), luminance(bg_rgb));
     (a.max(b) + 0.05) / (a.min(b) + 0.05)
+}
+
+// Catches omitted held-only entry, accidental keyboard dispatch, and target thawing.
+#[test]
+fn held_calibration_prepares_frozen_target_and_finishes_without_an_os_keypress() {
+    for theme in [egui::Theme::Light, egui::Theme::Dark] {
+        let mut h = Harness::loaded([960., 820.]);
+        h.ctx.set_theme(theme);
+        h.click("入力しきい値");
+        h.click("S\n#32");
+        assert!(h.visible("すべてのキーを離して準備"));
+        h.click("すべてのキーを離して準備");
+        h.click("A\n#31");
+        assert_eq!(h.app.calibration_position, 31);
+        h.settle();
+        assert!(h.visible("#32 · S だけを押したまま、マウスで実行"));
+        let execute = h.rect("実行");
+        let cancel = h.rect("キャンセル");
+        assert!((execute.center().y - cancel.center().y).abs() < 1.);
+        // Weak/remapped keys may produce no OS event. Execution still works by pointer.
+        h.render(vec![key_event(egui::Key::Enter, true)]);
+        h.render(vec![key_event(egui::Key::Enter, false)]);
+        assert!(h.app.controller.pending.is_none());
+        h.click("実行");
+        h.settle();
+        assert_eq!(
+            h.app.controller.calibration.as_ref().unwrap().phase,
+            CalibrationPhase::Complete
+        );
+        assert!(!h.app.controller.calibration_active());
+        assert!(h.visible("#32 · S: 31 → 32"));
+        assert!(h.visible("他のキーの変化: 0 / 65"));
+        assert!(h.visible("DEMO: シミュレーション結果"));
+        assert!(!h.app.controller.live);
+        assert!(!h.app.controller.editor.as_ref().unwrap().dirty());
+        assert!(h.visible("→\n#66"));
+    }
+}
+
+#[test]
+fn held_calibration_cancel_keeps_the_selected_position_and_reports_missing_comparison() {
+    let mut h = Harness::loaded([960., 820.]);
+    h.click("入力しきい値");
+    h.click("すべてのキーを離して準備");
+    h.settle();
+    h.click("S\n#32");
+    assert_eq!(h.app.calibration_position, 30);
+    h.click("キャンセル");
+    h.settle();
+    assert_eq!(
+        h.app.controller.calibration.as_ref().unwrap().phase,
+        CalibrationPhase::Aborted
+    );
+    assert!(h.visible("比較できません: 校正後の66キーの値が未取得です"));
+    assert!(!h.visible("他のキーの変化: 0 / 65"));
+}
+
+// Catches stale/unavailable selected values despite a complete post-observation, and neutral neighbor warnings.
+#[test]
+fn held_result_uses_complete_after_values_and_warns_about_neighbor_changes() {
+    let mut h = Harness::loaded([960., 820.]);
+    h.click("入力しきい値");
+    h.click("すべてのキーを離して準備");
+    h.settle();
+    h.click("実行");
+    h.settle();
+    let held = h
+        .app
+        .controller
+        .calibration
+        .as_mut()
+        .unwrap()
+        .held_key
+        .as_mut()
+        .unwrap();
+    held.after.as_mut().unwrap()[31] = 90;
+    h.render(vec![]);
+    assert!(h.visible("しきい値: 31"));
+    assert!(h.visible("他のキーの変化: 1 / 65"));
+    let color = h
+        .output
+        .shapes
+        .iter()
+        .find_map(|s| match &s.shape {
+            egui::Shape::Text(t) if t.galley.text() == "他のキーの変化: 1 / 65" => {
+                Some(t.galley.job.sections[0].format.color)
+            }
+            _ => None,
+        })
+        .unwrap();
+    assert_eq!(
+        color,
+        crate::theme::Palette::for_dark(h.ctx.theme() == egui::Theme::Dark).warning
+    );
+    h.click("S\n#32");
+    assert!(h.visible("しきい値: 90"));
+    assert!(h.visible("#31 · A: 30 → 31"));
+}
+
+#[test]
+fn held_result_never_claims_no_change_from_partial_read_and_keeps_complete_observation_on_failure()
+{
+    let mut h = Harness::loaded([960., 820.]);
+    h.click("入力しきい値");
+    h.click("すべてのキーを離して準備");
+    h.settle();
+    h.click("実行");
+    h.settle();
+    let status = h.app.controller.calibration.as_mut().unwrap();
+    status.phase = CalibrationPhase::Failed;
+    status.settings_verified = false;
+    status.original_error = Some("settings mismatch".into());
+    let held = status.held_key.as_mut().unwrap();
+    held.after = held.before.clone();
+    h.render(vec![]);
+    assert!(h.visible("#31 · A: 30 → 30"));
+    assert!(h.visible("他のキーの変化: 0 / 65"));
+    assert!(h.visible("値の変化は観測されませんでした。反応が改善したことは未確認です。"));
+    h.app
+        .controller
+        .calibration
+        .as_mut()
+        .unwrap()
+        .held_key
+        .as_mut()
+        .unwrap()
+        .after = Some(vec![30; 65]);
+    h.render(vec![]);
+    assert!(h.visible("比較できません: 校正後の66キーの値が未取得です"));
+    assert!(!h.visible("他のキーの変化: 0 / 65"));
+    assert!(!h.visible("値の変化は観測されませんでした。反応が改善したことは未確認です。"));
+    assert!(h.visible("しきい値: 未取得"));
+}
+
+#[test]
+fn held_execute_rejects_real_focused_keyboard_and_accessibility_actions() {
+    for label in ["すべてのキーを離して準備", "実行"] {
+        let mut h = Harness::loaded([960., 820.]);
+        h.ctx.enable_accesskit();
+        h.click("入力しきい値");
+        if label == "実行" {
+            h.click("すべてのキーを離して準備");
+            h.settle();
+        }
+        h.render(vec![]);
+        let node = h
+            .output
+            .platform_output
+            .accesskit_update
+            .as_ref()
+            .unwrap()
+            .nodes
+            .iter()
+            .find(|(_, n)| n.role() == egui::accesskit::Role::Button && n.label() == Some(label))
+            .expect("actual changing action in accessibility tree")
+            .0;
+        // AccessKit nodes store the actual high-entropy egui widget ID.
+        let button_id = unsafe { egui::Id::from_high_entropy_bits(node.0) };
+        for key in [egui::Key::Enter, egui::Key::Space] {
+            h.ctx.memory_mut(|m| m.request_focus(button_id));
+            h.render(vec![key_event(key, true)]);
+            h.render(vec![key_event(key, false)]);
+            assert_eq!(h.ctx.memory(|m| m.focused()), Some(button_id));
+            assert!(h.app.controller.pending.is_none());
+            assert!(
+                h.app
+                    .controller
+                    .calibration
+                    .as_ref()
+                    .is_none_or(|s| !s.held_attempted)
+            );
+        }
+        h.render(vec![egui::Event::AccessKitActionRequest(
+            egui::accesskit::ActionRequest {
+                action: egui::accesskit::Action::Click,
+                target_tree: egui::accesskit::TreeId::ROOT,
+                target_node: node,
+                data: None,
+            },
+        )]);
+        assert!(h.app.controller.pending.is_none());
+        assert!(
+            h.app
+                .controller
+                .calibration
+                .as_ref()
+                .is_none_or(|s| !s.held_attempted)
+        );
+        h.click(label);
+        h.settle();
+        assert!(h.app.controller.calibration.is_some());
+    }
+}
+
+#[test]
+fn held_results_expose_all_66_literal_pairs_in_collapsed_details() {
+    let mut h = Harness::loaded([960., 820.]);
+    h.click("入力しきい値");
+    h.click("すべてのキーを離して準備");
+    h.settle();
+    h.click("実行");
+    h.settle();
+    assert!(!h.visible("全66キーの比較 · 公式配列の刻印"));
+    h.scroll_down();
+    h.click("校正の結果・対象・バックアップ");
+    for _ in 0..10 {
+        h.render(vec![]);
+    }
+    let mut seen = std::collections::BTreeSet::new();
+    for _ in 0..20 {
+        let texts = h.texts();
+        for (label, rect, clip) in &texts {
+            let Some((number, _)) = label
+                .strip_prefix('#')
+                .and_then(|label| label.split_once(" · "))
+            else {
+                continue;
+            };
+            if label.contains(":") || !clip.contains_rect(*rect) {
+                continue;
+            }
+            let position = number.parse::<usize>().unwrap() - 1;
+            let expected = if position == 30 {
+                "30 → 31".to_owned()
+            } else {
+                format!("{position} → {position}")
+            };
+            assert!(
+                texts
+                    .iter()
+                    .any(|(value, value_rect, value_clip)| value == &expected
+                        && value_clip.contains_rect(*value_rect)
+                        && (value_rect.center().y - rect.center().y).abs() < 1.),
+                "missing row values for {label}"
+            );
+            seen.insert(position);
+        }
+        h.scroll_down();
+    }
+    assert_eq!(seen, (0..66).collect());
+    assert!(h.app.controller.pending.is_none());
+}
+
+#[test]
+fn held_changing_controls_respect_popup_confirmation_close_and_pending_guards() {
+    for stage in [false, true] {
+        for guard in 0..4 {
+            let mut h = Harness::loaded([960., 820.]);
+            h.click("入力しきい値");
+            if stage {
+                h.click("すべてのキーを離して準備");
+                h.settle();
+            }
+            match guard {
+                0 => h.click("システム"),
+                1 => {
+                    h.app.confirm = Some(Confirm::Load(
+                        h.app.controller.editor.as_ref().unwrap().baseline.clone(),
+                    ))
+                }
+                2 => h.app.controller.close_requested = true,
+                _ => {
+                    h.app.controller.pending = Some(crate::protocol::Ticket {
+                        generation: 1,
+                        operation: 999,
+                    })
+                }
+            }
+            let pending = h.app.controller.pending;
+            h.render(vec![]);
+            h.click(if stage {
+                "実行"
+            } else {
+                "すべてのキーを離して準備"
+            });
+            assert_eq!(h.app.controller.pending, pending);
+            assert!(
+                h.app
+                    .controller
+                    .calibration
+                    .as_ref()
+                    .is_none_or(|s| !s.held_attempted)
+            );
+            assert_eq!(h.app.calibration_position, 30);
+        }
+    }
+}
+
+// Catches calibration values from A appearing under B, or under a replaced/removed descriptor.
+fn assert_held_result_source_invalidation(change: usize) {
+    let mut h = Harness::loaded([960., 820.]);
+    h.click("入力しきい値");
+    h.click("すべてのキーを離して準備");
+    h.settle();
+    h.click("実行");
+    h.settle();
+    assert!(h.visible("しきい値: 31"));
+    assert!(h.visible("#31 · A: 30 → 31"));
+    if change == 0 {
+        let mut second = h.app.controller.devices[0].clone();
+        second.path = "demo://second-keyboard".into();
+        second.product = "Simulated second keyboard".into();
+        h.app.controller.devices.push(second);
+        h.app
+            .controller
+            .select_device("demo://second-keyboard".into())
+            .unwrap();
+    } else {
+        let mut devices = h.app.controller.devices.clone();
+        match change {
+            1 => devices[0].product = "Replacement descriptor".into(),
+            2 => devices[0].identity.product_id = 0x512a,
+            _ => devices.clear(),
+        }
+        h.app.controller.list().unwrap();
+        h.app.controller.process(crate::protocol::Event {
+            ticket: h.app.controller.pending.unwrap(),
+            response: crate::protocol::Response::Devices(devices),
+        });
+    }
+    h.render(vec![]);
+    assert!(
+        h.visible("しきい値: 未取得"),
+        "change {change}: stale post-observation under new source"
+    );
+    assert!(!h.visible("#31 · A: 30 → 31"));
+    assert!(!h.visible("他のキーの変化: 0 / 65"));
+    assert!(h.app.controller.calibration.is_none());
+    assert!(!h.app.controller.live);
+}
+
+#[test]
+fn held_result_is_invalidated_on_switch_to_second_device() {
+    assert_held_result_source_invalidation(0);
+}
+#[test]
+fn held_result_is_invalidated_on_same_path_product_change() {
+    assert_held_result_source_invalidation(1);
+}
+#[test]
+fn held_result_is_invalidated_on_same_path_identity_change() {
+    assert_held_result_source_invalidation(2);
+}
+#[test]
+fn held_result_is_invalidated_on_device_removal() {
+    assert_held_result_source_invalidation(3);
+}
+
+#[test]
+fn held_result_is_cleared_before_advancing_read_generation() {
+    let mut h = Harness::loaded([960., 820.]);
+    h.click("入力しきい値");
+    h.click("すべてのキーを離して準備");
+    h.settle();
+    h.click("実行");
+    h.settle();
+    assert!(h.visible("しきい値: 31"));
+    let generation = h.app.controller.generation;
+    h.app
+        .controller
+        .read(
+            "demo://keyboard".into(),
+            crate::controller::ReadChoice::Discard,
+        )
+        .unwrap();
+    assert_eq!(h.app.controller.generation, generation + 1);
+    assert!(h.app.controller.calibration.is_none());
+    h.render(vec![]);
+    assert!(h.visible("しきい値: 未取得"));
+    assert!(!h.visible("#31 · A: 30 → 31"));
 }

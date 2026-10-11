@@ -2,8 +2,8 @@ mod backup;
 mod calibration;
 pub use backup::SnapshotPaths;
 pub use calibration::{
-    CalibrationPhase, CalibrationResult, CalibrationStatus, PacketTrace, TraceDirection,
-    UnlockOutcome,
+    CalibrationPhase, CalibrationResult, CalibrationStatus, HeldKeyCalibration, PacketTrace,
+    TraceDirection, UnlockOutcome,
 };
 mod raw_thresholds;
 mod session;
@@ -50,6 +50,8 @@ impl From<std::io::Error> for Error {
 pub type Result<T> = std::result::Result<T, Error>;
 #[cfg(test)]
 mod event_tests;
+#[cfg(test)]
+mod held_calibration_tests;
 #[cfg(test)]
 mod raw_threshold_tests;
 #[cfg(test)]

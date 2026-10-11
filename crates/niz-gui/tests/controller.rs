@@ -51,6 +51,7 @@ fn status(phase: CalibrationPhase) -> CalibrationStatus {
         lighting_verified: false,
         original_error: None,
         trace: vec![],
+        held_key: None,
     }
 }
 fn connected() -> Controller<FakePort> {

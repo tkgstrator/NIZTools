@@ -37,9 +37,19 @@ pub struct PacketTrace {
     pub bytes: Vec<u8>,
     pub outcome: Option<String>,
 }
+/// Complete, physical-order normal threshold observations for a held-key run.
+/// The position instructs the physical hold; it is not a firmware write mask.
+/// Missing observations never imply that a table is unchanged or restorable.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct HeldKeyCalibration {
+    pub position: usize,
+    pub before: Option<Vec<u8>>,
+    pub after: Option<Vec<u8>>,
+}
 #[derive(Clone, Debug, Serialize)]
 pub struct CalibrationStatus {
     pub phase: CalibrationPhase,
+    pub held_key: Option<HeldKeyCalibration>,
     pub failure_phase: Option<CalibrationPhase>,
     pub backup: Option<SnapshotPaths>,
     pub lock_may_have_been_sent: bool,
@@ -60,6 +70,7 @@ impl CalibrationStatus {
     fn preparing() -> Self {
         Self {
             phase: CalibrationPhase::Preparing,
+            held_key: None,
             failure_phase: None,
             backup: None,
             lock_may_have_been_sent: false,
@@ -270,6 +281,29 @@ impl Session {
         baseline: &LiveBaseline,
         directory: &Path,
     ) -> Result<CalibrationStatus> {
+        self.begin_calibration_inner(baseline, directory, None)
+    }
+    /// Prepare official held calibration using retained release calibration.
+    /// Capture all normal thresholds before locking; never dispatch DB here.
+    pub fn begin_held_key_calibration(
+        &mut self,
+        baseline: &LiveBaseline,
+        directory: &Path,
+        position: usize,
+    ) -> Result<CalibrationStatus> {
+        if position >= 66 {
+            return Err(Error::new(
+                "held calibration requires physical position 0 through 65",
+            ));
+        }
+        self.begin_calibration_inner(baseline, directory, Some(position))
+    }
+    fn begin_calibration_inner(
+        &mut self,
+        baseline: &LiveBaseline,
+        directory: &Path,
+        held_position: Option<usize>,
+    ) -> Result<CalibrationStatus> {
         self.check_baseline(baseline)?;
         self.exact_target(baseline.profile())?;
         if self
@@ -284,6 +318,11 @@ impl Session {
             status: CalibrationStatus::preparing(),
             profile: baseline.profile().clone(),
             lighting: vec![],
+        });
+        self.status_mut().held_key = held_position.map(|position| HeldKeyCalibration {
+            position,
+            before: None,
+            after: None,
         });
         let prepare = (|| {
             if self.cancelled() {
@@ -301,12 +340,34 @@ impl Session {
                     "external settings/firmware changed before calibration",
                 ));
             }
+            if held_position.is_some() && self.cancelled() {
+                return Err(Error::new(
+                    "calibration cancellation requested after settings capture",
+                ));
+            }
             let lighting = self.lighting_inner()?;
+            if held_position.is_some() && self.cancelled() {
+                return Err(Error::new(
+                    "calibration cancellation requested after lighting capture",
+                ));
+            }
             let paths = crate::backup::save_snapshot(&current, &lighting, directory, self.backup)?;
             crate::backup::verify_snapshot(&paths, &current, &lighting)?;
             self.calibration.as_mut().unwrap().profile = current;
             self.calibration.as_mut().unwrap().lighting = lighting;
             self.status_mut().backup = Some(paths);
+            if held_position.is_some() {
+                if self.cancelled() {
+                    return Err(Error::new(
+                        "calibration cancellation requested before threshold capture",
+                    ));
+                }
+                // Complete the bounded DC1 transaction even if cancellation
+                // arrives during its reads, then stop before any next command.
+                let thresholds = self.raw_thresholds_inner()?;
+                self.status_mut().held_key.as_mut().unwrap().before =
+                    Some(thresholds.values().to_vec());
+            }
             self.require_quiet_calibration_input()?;
             Ok(())
         })();
@@ -325,6 +386,10 @@ impl Session {
         }
         if self.cancelled() {
             return Err(self.cancellation_error());
+        }
+        if held_position.is_some() {
+            self.status_mut().phase = CalibrationPhase::AwaitingHeldKeys;
+            return Ok(self.calibration_status().unwrap());
         }
         self.status_mut().phase = CalibrationPhase::ReleaseWaiting;
         if let Err(error) = self.require_quiet_calibration_input() {
@@ -374,14 +439,46 @@ impl Session {
         if self.cancelled() {
             return Err(self.cancellation_error());
         }
+        let held_only = self.status_mut().held_key.is_some();
+        if held_only {
+            self.status_mut().phase = CalibrationPhase::Verifying;
+            // DE has completed. DC1 restores the previous scanner enable
+            // state, so keep the same D9=0 ownership through the full capture.
+            // A failed read passively settles under ownership before cleanup.
+            match self.raw_thresholds_inner() {
+                Ok(thresholds) => {
+                    self.status_mut().held_key.as_mut().unwrap().after =
+                        Some(thresholds.values().to_vec());
+                }
+                Err(error) => return Err(self.calibration_error(error, true, self.cancelled())),
+            }
+            if self.cancelled() {
+                return Err(self.cancellation_error());
+            }
+        }
         self.status_mut().phase = CalibrationPhase::Unlocking;
         if let Err(error) = self.unlock_once() {
             return Err(self.calibration_error(error, false, false));
         }
         self.status_mut().phase = CalibrationPhase::Verifying;
         let postflight = (|| {
+            if held_only && self.cancelled() {
+                return Err(Error::new(
+                    "calibration cancellation requested before settings verification",
+                ));
+            }
             let current = self.profile_inner()?;
+            if held_only && self.cancelled() {
+                return Err(Error::new(
+                    "calibration cancellation requested after settings verification",
+                ));
+            }
             let (rgb, rgb_raw) = self.lighting_capture_inner()?;
+            if held_only && self.cancelled() {
+                return Err(Error::new(
+                    "calibration cancellation requested after lighting verification",
+                ));
+            }
             let original = &self.calibration.as_ref().unwrap().profile;
             let before = &self.calibration.as_ref().unwrap().lighting;
             if current.firmware != original.firmware
@@ -414,7 +511,7 @@ impl Session {
                     lighting,
                 })
             }
-            Err(error) => Err(self.calibration_error(error, false, false)),
+            Err(error) => Err(self.calibration_error(error, false, held_only && self.cancelled())),
         }
     }
     pub fn cancel_calibration(&mut self) -> Result<CalibrationStatus> {

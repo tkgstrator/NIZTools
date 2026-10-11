@@ -23,6 +23,7 @@ pub trait Backend {
     fn read_raw_thresholds(&mut self) -> Result<(RawThresholds, RawThresholdSource), Failure>;
     fn trial(&mut self, selection: Selection, backup: &Path) -> Result<Response, Failure>;
     fn begin(&mut self, backup: &Path) -> Result<CalibrationStatus, Failure>;
+    fn begin_held(&mut self, backup: &Path, position: usize) -> Result<CalibrationStatus, Failure>;
     fn held(&mut self) -> Result<CalibrationStatus, Failure>;
     fn finish(&mut self) -> Result<CalibrationStatus, Failure>;
     fn cancel(&mut self) -> Result<CalibrationStatus, Failure>;
@@ -116,6 +117,7 @@ impl<B: Backend> Worker<B> {
             Command::ReadRawThresholds
                 | Command::Trial { .. }
                 | Command::Begin { .. }
+                | Command::BeginHeld { .. }
                 | Command::Held
                 | Command::Finish
                 | Command::Cancel
@@ -199,11 +201,39 @@ impl<B: Backend> Worker<B> {
                 self.valid = false;
                 Ok(Response::Calibration(self.backend.begin(backup)?))
             }
+            Command::BeginHeld { backup, position } => {
+                if !self.valid || active {
+                    return Err(fail("A fresh native baseline is required"));
+                }
+                if *position >= 66 {
+                    return Err(fail("Select a physical key in 0..65"));
+                }
+                let baseline = self
+                    .backend
+                    .baseline()
+                    .ok_or_else(|| fail("No native baseline"))?;
+                if !supports_raw_thresholds(&baseline.identity, &baseline.firmware)
+                    || baseline.group_count() != 3
+                {
+                    return Err(fail(
+                        "Held calibration requires exact XRGB V1.0.48 / 0483:502a",
+                    ));
+                }
+                self.valid = false;
+                Ok(Response::Calibration(
+                    self.backend.begin_held(backup, *position)?,
+                ))
+            }
             Command::Held => {
                 if self.calibration != Some(CalibrationPhase::AwaitingHeldKeys) {
                     return Err(fail("Held stage is not ready"));
                 }
-                Ok(Response::Calibration(self.backend.held()?))
+                let status = self.backend.held()?;
+                if status.held_key.is_some() && status.phase == CalibrationPhase::AwaitingFinish {
+                    Ok(Response::Finished(self.backend.finish()?))
+                } else {
+                    Ok(Response::Calibration(status))
+                }
             }
             Command::Finish => {
                 if self.calibration != Some(CalibrationPhase::AwaitingFinish) {
@@ -306,6 +336,17 @@ impl Backend for NativeBackend {
             .ok_or_else(|| Failure::from("No native Session".to_string()))?
             .begin_calibration(b, backup)?)
     }
+    fn begin_held(&mut self, backup: &Path, position: usize) -> Result<CalibrationStatus, Failure> {
+        let b = self
+            .baseline
+            .as_ref()
+            .ok_or_else(|| Failure::from("No current native baseline".to_string()))?;
+        Ok(self
+            .session
+            .as_mut()
+            .ok_or_else(|| Failure::from("No native Session".to_string()))?
+            .begin_held_key_calibration(b, backup, position)?)
+    }
     fn held(&mut self) -> Result<CalibrationStatus, Failure> {
         Ok(self.session()?.calibrate_held_keys()?)
     }
@@ -342,6 +383,7 @@ impl DemoBackend {
             lighting_verified: false,
             original_error: None,
             trace: vec![],
+            held_key: None,
         });
         s.phase = phase;
         if self.cancel.load(Ordering::Acquire) {
@@ -434,6 +476,17 @@ impl Backend for DemoBackend {
         self.status = Some(s.clone());
         Ok(s)
     }
+    fn begin_held(&mut self, _: &Path, position: usize) -> Result<CalibrationStatus, Failure> {
+        let mut s = self.stage(CalibrationPhase::AwaitingHeldKeys)?;
+        s.held_key = Some(niz_device::HeldKeyCalibration {
+            position,
+            before: Some((0..66).collect()),
+            after: None,
+        });
+        s.lock_may_have_been_sent = true;
+        self.status = Some(s.clone());
+        Ok(s)
+    }
     fn held(&mut self) -> Result<CalibrationStatus, Failure> {
         let mut s = self.stage(CalibrationPhase::AwaitingFinish)?;
         s.held_attempted = true;
@@ -445,6 +498,13 @@ impl Backend for DemoBackend {
     fn finish(&mut self) -> Result<CalibrationStatus, Failure> {
         let mut s = self.stage(CalibrationPhase::Complete)?;
         s.unlock = niz_device::UnlockOutcome::Sent;
+        if s.phase == CalibrationPhase::Complete
+            && let Some(held) = &mut s.held_key
+        {
+            let mut after = held.before.clone().unwrap();
+            after[held.position] = after[held.position].saturating_add(1);
+            held.after = Some(after);
+        }
         s.settings_verified = true;
         s.lighting_verified = true;
         self.status = Some(s.clone());

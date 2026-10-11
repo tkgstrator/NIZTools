@@ -68,6 +68,9 @@ impl Backend for Fake {
     fn begin(&mut self, _: &Path) -> Result<CalibrationStatus, Failure> {
         panic!("no calibration")
     }
+    fn begin_held(&mut self, _: &Path, _: usize) -> Result<CalibrationStatus, Failure> {
+        panic!("legacy fake does not support held-only calibration")
+    }
     fn held(&mut self) -> Result<CalibrationStatus, Failure> {
         panic!("no calibration")
     }

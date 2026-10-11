@@ -868,6 +868,7 @@ fn calibration_owned_stages_and_unchanged_postflight() {
     let b = s.read_baseline().unwrap();
     let dir = tempfile::tempdir().unwrap();
     let released = s.begin_calibration(&b, dir.path()).unwrap();
+    assert!(released.held_key.is_none());
     assert_eq!(released.phase, CalibrationPhase::AwaitingHeldKeys);
     assert!(s.version().is_err());
     assert!(s.read_lighting().is_err());

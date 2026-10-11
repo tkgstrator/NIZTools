@@ -40,6 +40,10 @@ pub enum Command {
     Begin {
         backup: PathBuf,
     },
+    BeginHeld {
+        backup: PathBuf,
+        position: usize,
+    },
     Held,
     Finish,
     Cancel,

@@ -1,0 +1,24 @@
+   Compiling niz-gui v0.1.0 (/Users/devonly/Developer/personal/NIZ/crates/niz-gui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.11s
+     Running unittests src/lib.rs (target/debug/deps/niz_gui-ef2579533dad9ba6)
+
+running 2 tests
+
+thread 'app::tests::held_calibration_cancel_keeps_the_selected_position_and_reports_missing_comparison' (2173970) panicked at crates/niz-gui/src/app_tests.rs:158:32:
+missing "すべてのキーを離して準備"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test app::tests::held_calibration_cancel_keeps_the_selected_position_and_reports_missing_comparison ... FAILED
+
+thread 'app::tests::held_calibration_prepares_frozen_target_and_finishes_without_an_os_keypress' (2173971) panicked at crates/niz-gui/src/app_tests.rs:2148:9:
+assertion failed: h.visible("すべてのキーを離して準備")
+test app::tests::held_calibration_prepares_frozen_target_and_finishes_without_an_os_keypress ... FAILED
+
+failures:
+
+failures:
+    app::tests::held_calibration_cancel_keeps_the_selected_position_and_reports_missing_comparison
+    app::tests::held_calibration_prepares_frozen_target_and_finishes_without_an_os_keypress
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 52 filtered out; finished in 0.16s
+
+error: test failed, to rerun pass `-p niz-gui --lib`

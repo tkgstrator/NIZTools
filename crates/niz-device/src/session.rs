@@ -232,7 +232,7 @@ impl Session {
         let result = self.raw_thresholds_inner();
         self.poison(result)
     }
-    fn raw_thresholds_inner(&mut self) -> Result<crate::RawThresholds> {
+    pub(crate) fn raw_thresholds_inner(&mut self) -> Result<crate::RawThresholds> {
         let deadline = self.io.now_ms().saturating_add(30_000);
         let (firmware, version_report) = self.version_capture_inner()?;
         let mut evidence = vec![version_report.to_vec()];
@@ -253,6 +253,7 @@ impl Session {
             // After a fresh version response, excess input is a failed boundary,
             // not a stale queue that may be silently drained before dispatch.
             if let Some(extra) = self.io.queued_input().map_err(Error::new)? {
+                self.trace(crate::TraceDirection::Input, extra.clone(), None);
                 evidence.push(extra);
                 return Err(Error::new(
                     "unexpected queued input after fresh F9; DC not sent",
@@ -277,6 +278,7 @@ impl Session {
             // Mode 1 has no terminator or reference frame. A nonblocking probe
             // prevents accepting queued excess data as a future transaction.
             if let Some(extra) = self.io.queued_input().map_err(Error::new)? {
+                self.trace(crate::TraceDirection::Input, extra.clone(), None);
                 evidence.push(extra);
                 return Err(Error::new(
                     "unexpected queued input after raw threshold rows",
@@ -318,6 +320,11 @@ impl Session {
                 attempts += 1;
                 match self.io.queued_input() {
                     Ok(Some(bytes)) => {
+                        self.trace(
+                            crate::TraceDirection::Input,
+                            bytes.clone(),
+                            Some("passive capture after failed DC read".into()),
+                        );
                         error.raw_reports.push(bytes);
                         captured += 1;
                     }
