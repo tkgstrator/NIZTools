@@ -1,0 +1,7 @@
+# Raw value actual implementation review
+
+Read-only inspection of current app.rs and matching app_tests.rs additions, compared with the previously inspected FROM/TO display and ownership guards. Native file access verified. No Git/app/HID/product edit or test rerun performed by this reviewer.
+
+No material findings. app.rs renders pending placeholder first, then chooses guarded `after.or(before)` and formats decimal plus two-digit uppercase hex, with missing placeholder. It reuses selected physical position, complete66 observations, guarded current target/path/descriptor and existing snapshot generation/baseline validity. The hover `読み取り時の内部しきい値` accurately describes a snapshot; the existing DEMO marker remains. No command/event/transport behavior changed.
+
+Tests meaningfully extend the existing manual-read/selection tests with decimal/hex and unchanged read timestamp/generation, manual pending/error placeholder, complete held/global after priority, partial-after fallback to complete before, source/descriptor/removal/new generation invalidation, and a dedicated held-write pending test that renders before consuming the worker reply and prevents the released observation being shown as a new raw value. Existing compact layout/keyboard checks remain the relevant regression coverage. Parent reports workspace351 pass and final bounded assertions running; this review does not independently certify test execution.

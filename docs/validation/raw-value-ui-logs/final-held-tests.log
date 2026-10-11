@@ -1,0 +1,15 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.25s
+     Running unittests src/lib.rs (target/debug/deps/niz_gui-ef2579533dad9ba6)
+
+running 8 tests
+test app::tests::held_result_is_cleared_before_advancing_read_generation ... ok
+test app::tests::held_result_is_invalidated_on_same_path_identity_change ... ok
+test app::tests::held_result_never_claims_no_change_from_partial_read_and_keeps_complete_observation_on_failure ... ok
+test app::tests::held_result_is_invalidated_on_switch_to_second_device ... ok
+test app::tests::held_result_is_invalidated_on_device_removal ... ok
+test app::tests::held_result_is_invalidated_on_same_path_product_change ... ok
+test app::tests::held_result_uses_complete_after_values_and_warns_about_neighbor_changes ... ok
+test app::tests::held_results_expose_all_66_literal_pairs_in_collapsed_details ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 64 filtered out; finished in 1.87s
+

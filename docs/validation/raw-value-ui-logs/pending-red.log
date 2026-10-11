@@ -1,0 +1,21 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.25s
+     Running unittests src/lib.rs (target/debug/deps/niz_gui-ef2579533dad9ba6)
+
+running 1 test
+test app::tests::raw_value_hides_pre_calibration_observation_during_owned_write ... FAILED
+
+failures:
+
+---- app::tests::raw_value_hides_pre_calibration_observation_during_owned_write stdout ----
+
+thread 'app::tests::raw_value_hides_pre_calibration_observation_during_owned_write' (2350084) panicked at crates/niz-gui/src/app_tests.rs:2495:5:
+assertion failed: h.visible("生値: 30 (0x1E)")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    app::tests::raw_value_hides_pre_calibration_observation_during_owned_write
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 71 filtered out; finished in 0.60s
+
+error: test failed, to rerun pass `-p niz-gui --lib`

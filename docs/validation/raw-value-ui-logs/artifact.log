@@ -1,0 +1,11 @@
+COMMAND ['codesign', '--verify', '--deep', '--strict', '/Users/devonly/Developer/personal/NIZ/dist/NIZ Utility.app']
+COMMAND ['codesign', '--verify', '--strict', '/Users/devonly/Developer/personal/NIZ/dist/niz']
+COMMAND ['plutil', '-lint', '/Users/devonly/Developer/personal/NIZ/dist/NIZ Utility.app/Contents/Info.plist']
+/Users/devonly/Developer/personal/NIZ/dist/NIZ Utility.app/Contents/Info.plist: OK
+COMMAND ['lipo', '-archs', '/Users/devonly/Developer/personal/NIZ/dist/NIZ Utility.app/Contents/MacOS/niz-gui']
+x86_64 arm64
+COMMAND ['lipo', '-archs', '/Users/devonly/Developer/personal/NIZ/dist/niz']
+x86_64 arm64
+COMMAND ['ditto', '-x', '-k', '/Users/devonly/Developer/personal/NIZ/dist/NIZ-Utility-universal.zip', '/private/tmp/niz-raw-value-ui-20261011/extracted']
+COMMAND ['codesign', '--verify', '--deep', '--strict', '/private/tmp/niz-raw-value-ui-20261011/extracted/NIZ Utility.app']
+Extracted GUI matches packaged GUI.

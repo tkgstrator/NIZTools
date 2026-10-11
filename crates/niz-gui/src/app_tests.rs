@@ -1248,6 +1248,7 @@ fn compact_threshold_values_share_vertical_center_and_manual_snapshot() {
         h.click("入力しきい値");
         assert!(h.visible("FROM: —"));
         assert!(h.visible("TO: —"));
+        assert!(h.visible("生値: —"));
         assert!(!h.visible("しきい値について"));
         h.click("しきい値を読み込む");
         h.settle();
@@ -1255,9 +1256,11 @@ fn compact_threshold_values_share_vertical_center_and_manual_snapshot() {
         let generation = h.app.controller.generation;
         assert!(h.visible("FROM: 13"));
         assert!(h.visible("TO: —"));
+        assert!(h.visible("生値: 13 (0x0D)"));
         assert!((h.rect("FROM: 13").center().y - h.rect("TO: —").center().y).abs() <= 1.);
         h.click("S\n#32");
         assert!(h.visible("FROM: 14"));
+        assert!(h.visible("生値: 14 (0x0E)"));
         assert_eq!(h.app.controller.raw_thresholds().unwrap().read_at, read_at);
         assert_eq!(h.app.controller.generation, generation);
         assert!(h.app.controller.pending.is_none());
@@ -1282,6 +1285,7 @@ fn raw_threshold_read_is_manual_and_demo_values_are_explicitly_simulated() {
     assert!(h.visible("FROM: 13"));
     h.click("=\n#13");
     assert!(h.visible("FROM: 60"));
+    assert!(h.visible("生値: 60 (0x3C)"));
     assert!(h.visible("すべてのキーを離して準備"));
     h.click("生しきい値の読み取り記録");
     for _ in 0..8 {
@@ -1314,6 +1318,8 @@ fn raw_threshold_pending_and_error_show_no_old_or_partial_values() {
         .run_ui(h.input(vec![]), |ui| h.app.ui(ui, &mut h.frame));
     h.output.textures_delta.clear();
     assert!(h.visible("FROM: …"));
+    assert!(h.visible("生値: …"));
+    assert!(!h.visible("生値: 13 (0x0D)"));
     assert!(!h.visible("FROM: 13"));
     h.app.controller.process(crate::protocol::Event {
         ticket: h.app.controller.pending.unwrap(),
@@ -1321,6 +1327,7 @@ fn raw_threshold_pending_and_error_show_no_old_or_partial_values() {
     });
     h.render(vec![]);
     assert!(h.visible("FROM: —"));
+    assert!(h.visible("生値: —"));
     assert!(h.app.controller.raw_thresholds().is_none());
     assert!(!h.app.controller.live);
     assert!(
@@ -2154,6 +2161,7 @@ fn held_result_never_claims_no_change_from_partial_read_and_keeps_complete_obser
     assert!(!h.visible("値の変化は観測されませんでした。反応が改善したことは未確認です。"));
     assert!(h.visible("FROM: 30"));
     assert!(h.visible("TO: —"));
+    assert!(h.visible("生値: 30 (0x1E)"));
 }
 
 #[test]
@@ -2348,6 +2356,8 @@ fn assert_held_result_source_invalidation(change: usize) {
         "change {change}: stale post-observation under new source"
     );
     assert!(!h.visible("TO: 31"));
+    assert!(h.visible("生値: —"));
+    assert!(!h.visible("生値: 31 (0x1F)"));
     assert!(!h.visible("他のキーの変化: 0 / 65"));
     assert!(h.app.controller.calibration.is_none());
     assert!(!h.app.controller.live);
@@ -2392,6 +2402,7 @@ fn held_result_is_cleared_before_advancing_read_generation() {
     h.render(vec![]);
     assert!(h.visible("FROM: —"));
     assert!(!h.visible("TO: 31"));
+    assert!(!h.visible("生値: 31 (0x1F)"));
 }
 
 // Catches a transcript/panel returning or key-up leaving a candidate lit.
@@ -2439,6 +2450,7 @@ fn compact_threshold_result_only_shows_selected_from_to_and_actions() {
     h.settle();
     assert!(h.visible("FROM: 30"));
     assert!(h.visible("TO: 31"));
+    assert!(h.visible("生値: 31 (0x1F)"));
     for removed in [
         "しきい値について",
         "他のキーの変化: 0 / 65",
@@ -2466,10 +2478,32 @@ fn compact_threshold_global_result_uses_current_selected_from_to() {
     h.settle();
     assert!(h.visible("FROM: 20"));
     assert!(h.visible("TO: 16"));
+    assert!(h.visible("生値: 16 (0x10)"));
     assert!(h.app.controller.calibration.is_none());
     h.click("S\n#32");
     assert!(h.visible("FROM: 21"));
     assert!(h.visible("TO: 17"));
+    assert!(h.visible("生値: 17 (0x11)"));
     assert!(h.app.controller.pending.is_none());
     assert!(!h.app.controller.editor.as_ref().unwrap().dirty());
+}
+
+// Catches showing the released observation while the held operation may already change R.
+#[test]
+fn raw_value_hides_pre_calibration_observation_during_owned_write() {
+    let mut h = Harness::loaded([960., 820.]);
+    h.click("入力しきい値");
+    h.click("すべてのキーを離して準備");
+    h.settle();
+    assert!(h.visible("生値: 30 (0x1E)"));
+    h.app.controller.held(Activation::Pointer).unwrap();
+    // Render before consuming the worker's completed reply.
+    h.output = h
+        .ctx
+        .run_ui(h.input(vec![]), |ui| h.app.ui(ui, &mut h.frame));
+    h.output.textures_delta.clear();
+    assert!(h.visible("生値: …"));
+    assert!(!h.visible("生値: 30 (0x1E)"));
+    h.settle();
+    assert!(h.visible("生値: 31 (0x1F)"));
 }

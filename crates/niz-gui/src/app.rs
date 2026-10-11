@@ -425,6 +425,15 @@ impl App {
                     ui.small("DEMO値");
                 }
             });
+            ui.label(if pending {
+                "生値: …".into()
+            } else {
+                after
+                    .or(before)
+                    .map(|value| format!("生値: {value} (0x{value:02X})"))
+                    .unwrap_or_else(|| "生値: —".into())
+            })
+            .on_hover_text("読み取り時の内部しきい値");
             let actions_enabled = !popup_at_frame_start
                 && self.confirm.is_none()
                 && !egui::Popup::is_any_open(ui.ctx())

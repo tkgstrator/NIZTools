@@ -1,0 +1,36 @@
+   Compiling niz-gui v0.1.0 (/Users/devonly/Developer/personal/NIZ/crates/niz-gui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.15s
+     Running unittests src/lib.rs (target/debug/deps/niz_gui-ef2579533dad9ba6)
+
+running 3 tests
+test app::tests::compact_threshold_values_share_vertical_center_and_manual_snapshot ... FAILED
+test app::tests::compact_threshold_global_result_uses_current_selected_from_to ... FAILED
+test app::tests::compact_threshold_result_only_shows_selected_from_to_and_actions ... FAILED
+
+failures:
+
+---- app::tests::compact_threshold_values_share_vertical_center_and_manual_snapshot stdout ----
+
+thread 'app::tests::compact_threshold_values_share_vertical_center_and_manual_snapshot' (2349852) panicked at crates/niz-gui/src/app_tests.rs:1251:9:
+assertion failed: h.visible("生値: —")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- app::tests::compact_threshold_global_result_uses_current_selected_from_to stdout ----
+
+thread 'app::tests::compact_threshold_global_result_uses_current_selected_from_to' (2349850) panicked at crates/niz-gui/src/app_tests.rs:2478:5:
+assertion failed: h.visible("生値: 16 (0x10)")
+
+---- app::tests::compact_threshold_result_only_shows_selected_from_to_and_actions stdout ----
+
+thread 'app::tests::compact_threshold_result_only_shows_selected_from_to_and_actions' (2349851) panicked at crates/niz-gui/src/app_tests.rs:2450:5:
+assertion failed: h.visible("生値: 31 (0x1F)")
+
+
+failures:
+    app::tests::compact_threshold_global_result_uses_current_selected_from_to
+    app::tests::compact_threshold_result_only_shows_selected_from_to_and_actions
+    app::tests::compact_threshold_values_share_vertical_center_and_manual_snapshot
+
+test result: FAILED. 0 passed; 3 failed; 0 ignored; 0 measured; 69 filtered out; finished in 1.54s
+
+error: test failed, to rerun pass `-p niz-gui --lib`
