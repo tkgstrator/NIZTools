@@ -1,0 +1,21 @@
+   Compiling niz-gui v0.1.0 (/Users/devonly/Developer/personal/NIZ/crates/niz-gui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.62s
+     Running tests/raw_thresholds_controller.rs (target/debug/deps/raw_thresholds_controller-d1ee3d9e42088409)
+
+running 1 test
+
+thread 'raw_reply_rejects_wrong_metadata_target_source_and_response_command' (1942006) panicked at crates/niz-gui/tests/raw_thresholds_controller.rs:199:5:
+assertion `left == right` failed
+  left: 0
+ right: 11
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test raw_reply_rejects_wrong_metadata_target_source_and_response_command ... FAILED
+
+failures:
+
+failures:
+    raw_reply_rejects_wrong_metadata_target_source_and_response_command
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p niz-gui --test raw_thresholds_controller`

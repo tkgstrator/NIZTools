@@ -1,0 +1,41 @@
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on build directory
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.42s
+     Running unittests src/lib.rs (target/debug/deps/niz_gui-ef2579533dad9ba6)
+
+running 1 test
+theme=Light size=[960.0, 820.0] row=["NIZ Utility", "システム", "外観"] center_delta=0.00
+theme=Light size=[960.0, 820.0] row=["Simulated Atom66", "再検索", "読み込む"] center_delta=0.00
+theme=Light size=[960.0, 820.0] row=["DEMO · 読み込み済み", "実際のキーボードには接続しません", "デバイス情報"] center_delta=0.00
+theme=Light size=[960.0, 820.0] row=["出力を変更", "2つの位置を交換", "通常", "右 Fn", "左 Fn"] center_delta=0.00
+theme=Light size=[960.0, 820.0] row=["現在と同じ割り当てです", "変更を追加"] center_delta=0.00
+theme=Light size=[960.0, 820.0] row=["未適用の変更なし", "元に戻す", "やり直す", "デモで適用を確認…"] center_delta=0.00
+theme=Light size=[960.0, 820.0] row=["編集中の割り当て", "■ From", "● 未適用", "キーをクリックして選択"] center_delta=0.00
+theme=Light size=[700.0, 580.0] row=["NIZ Utility", "システム", "外観"] center_delta=0.00
+theme=Light size=[700.0, 580.0] row=["Simulated Atom66", "再検索", "読み込む"] center_delta=0.00
+theme=Light size=[700.0, 580.0] row=["DEMO · 読み込み済み", "実際のキーボードには接続しません", "デバイス情報"] center_delta=0.00
+theme=Light size=[700.0, 580.0] row=["出力を変更", "2つの位置を交換", "通常", "右 Fn", "左 Fn"] center_delta=0.00
+theme=Light size=[700.0, 580.0] row=["現在と同じ割り当てです", "変更を追加"] center_delta=0.00
+theme=Light size=[700.0, 580.0] row=["未適用の変更なし", "元に戻す", "やり直す", "デモで適用を確認…"] center_delta=0.00
+theme=Light size=[700.0, 580.0] row=["編集中の割り当て", "■ From", "● 未適用", "キーをクリックして選択"] center_delta=0.00
+theme=Dark size=[960.0, 820.0] row=["NIZ Utility", "システム", "外観"] center_delta=0.00
+theme=Dark size=[960.0, 820.0] row=["Simulated Atom66", "再検索", "読み込む"] center_delta=0.00
+theme=Dark size=[960.0, 820.0] row=["DEMO · 読み込み済み", "実際のキーボードには接続しません", "デバイス情報"] center_delta=0.00
+theme=Dark size=[960.0, 820.0] row=["出力を変更", "2つの位置を交換", "通常", "右 Fn", "左 Fn"] center_delta=0.00
+theme=Dark size=[960.0, 820.0] row=["現在と同じ割り当てです", "変更を追加"] center_delta=0.00
+theme=Dark size=[960.0, 820.0] row=["未適用の変更なし", "元に戻す", "やり直す", "デモで適用を確認…"] center_delta=0.00
+theme=Dark size=[960.0, 820.0] row=["編集中の割り当て", "■ From", "● 未適用", "キーをクリックして選択"] center_delta=0.00
+theme=Dark size=[700.0, 580.0] row=["NIZ Utility", "システム", "外観"] center_delta=0.00
+theme=Dark size=[700.0, 580.0] row=["Simulated Atom66", "再検索", "読み込む"] center_delta=0.00
+theme=Dark size=[700.0, 580.0] row=["DEMO · 読み込み済み", "実際のキーボードには接続しません", "デバイス情報"] center_delta=0.00
+theme=Dark size=[700.0, 580.0] row=["出力を変更", "2つの位置を交換", "通常", "右 Fn", "左 Fn"] center_delta=0.00
+theme=Dark size=[700.0, 580.0] row=["現在と同じ割り当てです", "変更を追加"] center_delta=0.00
+theme=Dark size=[700.0, 580.0] row=["未適用の変更なし", "元に戻す", "やり直す", "デモで適用を確認…"] center_delta=0.00
+theme=Dark size=[700.0, 580.0] row=["編集中の割り当て", "■ From", "● 未適用", "キーをクリックして選択"] center_delta=0.00
+test app::tests::mixed_header_and_board_legend_rows_center_actual_galleys ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 28 filtered out; finished in 0.74s
+

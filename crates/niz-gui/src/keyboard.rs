@@ -1,5 +1,6 @@
 use crate::editor::{Editor, Mode, action_label};
-use eframe::egui::{self, Color32, RichText};
+use crate::theme::Palette;
+use eframe::egui::{self, RichText};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum ClickTarget {
@@ -244,33 +245,25 @@ pub fn show(
     confirmation: bool,
     popup: bool,
 ) {
-    ui.add_space(6.);
-    ui.strong("キーボード · 現在の割り当て");
-    ui.small(
-        "公式ソフトの配列を基準に、現在の割り当てを表示しています。刻印と異なることがあります。",
-    );
+    let palette = Palette::of(ui);
     ui.horizontal_wrapped(|ui| {
-        ui.colored_label(Color32::from_rgb(33, 113, 91), "■ From");
+        ui.strong("編集中の割り当て").on_hover_text("公式ソフトの配列を基準に、現在の編集内容を表示しています。刻印と異なることがあります。適用するまでデバイスは変わりません。");
+        ui.colored_label(palette.from_border, egui::RichText::new("■ From").size(12.));
         if editor.selection.mode == Mode::Swap {
-            ui.colored_label(Color32::from_rgb(154, 105, 23), "■ To");
+            ui.colored_label(palette.to_border, egui::RichText::new("■ To").size(12.));
         }
-        ui.colored_label(Color32::from_rgb(176, 83, 22), "● 未適用の変更");
-        if editor.selection.mode == Mode::Reassign {
-            ui.small("キーをクリックして設定を選択");
-        }
-    });
-    if editor.selection.mode == Mode::Swap {
-        ui.add_enabled_ui(!blocked && !confirmation && !popup, |ui| {
-            ui.horizontal_wrapped(|ui| {
-                ui.label("次のクリックで選ぶ位置:");
+        ui.colored_label(palette.dirty, egui::RichText::new("● 未適用").size(12.));
+        if editor.selection.mode == Mode::Swap {
+            ui.add_enabled_ui(!blocked && !confirmation && !popup, |ui| {
+                ui.small("次のクリック:");
                 for (target, label) in [(ClickTarget::From, "From"), (ClickTarget::To, "To")] {
-                    if ui.selectable_label(state.target == target, label).clicked() {
+                    if crate::theme::choice(ui, state.target == target, label).clicked() {
                         state.set_target(target, blocked, confirmation, popup);
                     }
                 }
             });
-        });
-    }
+        } else { ui.small("キーをクリックして選択"); }
+    });
     let width = ui.available_width();
     let rows = row_geometry(width);
     let (_, area) = ui.allocate_space(egui::vec2(width, KEY_HEIGHT * 5. + GAP * 4.));
@@ -285,23 +278,11 @@ pub fn show(
                     egui::vec2(key.width, KEY_HEIGHT),
                 );
                 let (fill, stroke, text) = if view.is_from {
-                    (
-                        Color32::from_rgb(223, 243, 235),
-                        Color32::from_rgb(33, 113, 91),
-                        Color32::from_rgb(24, 84, 68),
-                    )
+                    (palette.from_fill, palette.from_border, palette.from_text)
                 } else if view.is_to {
-                    (
-                        Color32::from_rgb(255, 244, 215),
-                        Color32::from_rgb(174, 118, 22),
-                        Color32::from_rgb(115, 77, 12),
-                    )
+                    (palette.to_fill, palette.to_border, palette.to_text)
                 } else {
-                    (
-                        Color32::from_rgb(247, 249, 250),
-                        Color32::from_rgb(189, 199, 203),
-                        Color32::from_rgb(48, 62, 67),
-                    )
+                    (palette.control, palette.control_border, palette.text)
                 };
                 let title = format!("{}\n#{:02}", view.label, key.slot + 1);
                 let button = egui::Button::new(RichText::new(title).size(12.).color(text))
@@ -317,7 +298,7 @@ pub fn show(
                     ui.painter().circle_filled(
                         rect.right_top() + egui::vec2(-5., 5.),
                         2.5,
-                        Color32::from_rgb(176, 83, 22),
+                        palette.dirty,
                     );
                 }
                 if view.is_from && view.is_to {
@@ -326,7 +307,7 @@ pub fn show(
                             rect.left_bottom() + egui::vec2(4., -3.),
                             rect.right_bottom() + egui::vec2(-4., -3.),
                         ],
-                        egui::Stroke::new(2.5, Color32::from_rgb(174, 118, 22)),
+                        egui::Stroke::new(2.5, palette.to_border),
                     );
                 }
                 if response.clicked() {
@@ -338,4 +319,138 @@ pub fn show(
     if let Some(slot) = selected {
         state.click(editor, slot, blocked, confirmation, popup);
     }
+}
+
+/// Read-only reference output candidates; no selection or editor history is used.
+pub(crate) fn show_input(
+    ui: &mut egui::Ui,
+    profile: &niz_core::Profile,
+    layer: usize,
+    pressed: &std::collections::BTreeSet<usize>,
+) {
+    let palette = Palette::of(ui);
+    let mut reference = Editor::new(profile.clone());
+    reference.select_layer(layer);
+    let width = ui.available_width();
+    let (_, area) = ui.allocate_space(egui::vec2(width, KEY_HEIGHT * 5. + GAP * 4.));
+    for (row_index, row) in row_geometry(width).iter().enumerate() {
+        for key in row {
+            let view = key_view(&reference, key.slot);
+            let rect = egui::Rect::from_min_size(
+                area.min + egui::vec2(key.x, row_index as f32 * (KEY_HEIGHT + GAP)),
+                egui::vec2(key.width, KEY_HEIGHT),
+            );
+            let held = pressed.contains(&key.slot);
+            let (fill, border, text) = if held {
+                (palette.input_fill, palette.input_border, palette.input_text)
+            } else {
+                (palette.control, palette.control_border, palette.text)
+            };
+            ui.painter().rect(
+                rect,
+                5.,
+                fill,
+                egui::Stroke::new(if held { 2. } else { 1. }, border),
+                egui::StrokeKind::Inside,
+            );
+            ui.painter().text(
+                rect.center(),
+                egui::Align2::CENTER_CENTER,
+                format!("{}\n#{:02}", view.label, key.slot + 1),
+                egui::FontId::proportional(12.),
+                text,
+            );
+            ui.interact(
+                rect,
+                ui.id().with(("input-key", key.slot)),
+                egui::Sense::hover(),
+            )
+            .on_hover_text(format!(
+                "参照レイヤー: {} · 位置 #{}\n刻印: {}\n読み込んだ出力: {}\n{}",
+                ["通常", "右 Fn", "左 Fn"][layer],
+                key.slot + 1,
+                view.legend,
+                action_label(profile, layer * 66 + key.slot),
+                if held {
+                    "受け取った出力の一致候補"
+                } else {
+                    "一致候補の入力なし"
+                }
+            ));
+        }
+    }
+}
+
+pub(crate) fn physical_legend(slot: usize) -> &'static str {
+    PHYSICAL_LEGENDS.get(slot).copied().unwrap_or("Unknown")
+}
+fn compact_legend(slot: usize) -> &'static str {
+    match physical_legend(slot) {
+        "Backspace" => "BS",
+        "Caps Lock" => "Caps",
+        "Left Shift" => "L⇧",
+        "Right Shift / Up" => "R⇧/↑",
+        "Left Control" => "LCtrl",
+        "Right Control" => "RCtrl",
+        "Left Fn" => "LFn",
+        "Right Fn" => "RFn",
+        "Left Alt" => "LAlt",
+        "Right Alt" => "RAlt",
+        "Delete" => "Del",
+        "Left" => "←",
+        "Down" => "↓",
+        "Right" => "→",
+        legend => legend,
+    }
+}
+pub(crate) fn show_physical(ui: &mut egui::Ui, selected: usize, blocked: bool) -> Option<usize> {
+    let palette = Palette::of(ui);
+    let width = ui.available_width();
+    let (_, area) = ui.allocate_space(egui::vec2(width, KEY_HEIGHT * 5. + GAP * 4.));
+    let mut choice = None;
+    ui.add_enabled_ui(!blocked, |ui| {
+        ui.spacing_mut().button_padding = egui::vec2(2., 3.);
+        for (row_index, row) in row_geometry(width).iter().enumerate() {
+            for key in row {
+                let rect = egui::Rect::from_min_size(
+                    area.min + egui::vec2(key.x, row_index as f32 * (KEY_HEIGHT + GAP)),
+                    egui::vec2(key.width, KEY_HEIGHT),
+                );
+                let (fill, border, text) = if selected == key.slot {
+                    (palette.from_fill, palette.from_border, palette.from_text)
+                } else {
+                    (palette.control, palette.control_border, palette.text)
+                };
+                let response = ui
+                    .put(
+                        rect,
+                        egui::Button::new(
+                            RichText::new(format!(
+                                "{}\n#{:02}",
+                                compact_legend(key.slot),
+                                key.slot + 1
+                            ))
+                            .size(12.)
+                            .color(text),
+                        )
+                        .fill(fill)
+                        .stroke(egui::Stroke::new(
+                            if selected == key.slot { 1.8 } else { 1. },
+                            border,
+                        ))
+                        .corner_radius(5.)
+                        .min_size(rect.size()),
+                    )
+                    .on_hover_text(format!(
+                        "公式配列の刻印: {} · 位置 #{}\nキーの選択だけでは設定を変更しません。",
+                        physical_legend(key.slot),
+                        key.slot + 1
+                    ));
+                if response.clicked() {
+                    choice = Some(key.slot);
+                }
+            }
+        }
+    });
+    choice
 }

@@ -1,0 +1,17 @@
+{
+  "created_at": "2026-10-11T06:31:49.519265+00:00",
+  "host": "devonlys-MacBook-Pro.local",
+  "workspace": "/Users/devonly/Developer/personal/NIZ",
+  "files": {
+    "crates/niz-core/src/lib.rs": "8e1ddeb6ab9e98abccb9fdd6b72ce94967b7a8c48070fc3259a75578c2914a06",
+    "crates/niz-core/src/raw_thresholds.rs": "9395a105bbcd4bcdefbb950290b80f0838de4aec0c36ec1e4d5be538536b8c15",
+    "crates/niz-core/tests/raw_thresholds.rs": "4645f27f5096cb09d8ed4d0db00767dae8196c4c2a8fa5e7b9d9255e1147f09e",
+    "crates/niz-device/src/lib.rs": "55b54224b1d4a74979be25caa153a9a3f207e1f7eee9346f16bd8d062601c468",
+    "crates/niz-device/src/raw_thresholds.rs": "7016d0234aa7933a167c54b4acf55a0b2949768c1b32f965fdcc62bd35f2f701",
+    "crates/niz-device/src/raw_threshold_tests.rs": "b5dede0b8e4891c46aab9963f21d2190244c67559d7c0060d36d2da8acc8ca36",
+    "crates/niz-device/src/session.rs": "a33bd1a3701a2e092f39e497266efa638151b50900cb209b9c90ceba05a515e4",
+    "crates/niz-device/src/tests.rs": "2fa11bcaa0d90d1fc4b30116b7cf9c2acf70d9a3fba673de3dec95d14e43332b"
+  },
+  "hardware_commands_sent_by_this_worker": false,
+  "checkpoint": "after-independent-preprobe-review-fixes"
+}

@@ -5,6 +5,7 @@ mod keys;
 mod legacy;
 mod profile;
 mod protocol;
+mod raw_thresholds;
 
 pub use error::{Error, Result};
 pub use keys::{KEY_ROWS, KEY_WIDTHS, key_name, parse_key};
@@ -13,6 +14,7 @@ pub use profile::{DeviceIdentity, Profile};
 pub use protocol::{
     Definition, MAX_FILE_SIZE, MAX_REPORTS, command, decode_definition, encode_definition,
 };
+pub use raw_thresholds::{RawThresholdDecoder, decode_raw_thresholds};
 
 /// Logical HID payload, without hidapi's outgoing report-ID prefix.
 pub type Report = [u8; 64];

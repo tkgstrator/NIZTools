@@ -1,11 +1,13 @@
 use crate::{
-    controller::{Activation, Controller, ReadChoice, TrialApproval},
-    editor::{Mode, TriggerGuide, action_label, exact_trial, trigger_guide},
+    controller::{Controller, ReadChoice, TrialApproval},
+    editor::{Mode, action_label, exact_trial},
+    input_test::InputTest,
     keyboard::{self, KeyboardState},
-    protocol::Target,
+    protocol::{RawThresholdSource, Target},
+    theme::{self, Palette},
     worker::{ChannelPort, spawn},
 };
-use eframe::egui::{self, Color32, RichText};
+use eframe::egui::{self, RichText};
 use niz_core::{Profile, key_name};
 use niz_device::{CalibrationPhase, UnlockOutcome};
 use std::path::PathBuf;
@@ -13,6 +15,7 @@ use std::path::PathBuf;
 enum View {
     Assignment,
     Calibration,
+    InputTest,
 }
 enum Confirm {
     Read(String),
@@ -25,9 +28,10 @@ pub struct App {
     view: View,
     backup: PathBuf,
     confirm: Option<Confirm>,
-    calibration_ack: bool,
-    a_test: String,
+    calibration_position: usize,
     keyboard: KeyboardState,
+    appearance: egui::ThemePreference,
+    input_test: InputTest,
 }
 impl App {
     pub fn new(cc: &eframe::CreationContext<'_>, demo: bool) -> Self {
@@ -43,19 +47,7 @@ impl App {
             .or_default()
             .push("NotoJP".into());
         cc.egui_ctx.set_fonts(fonts);
-        cc.egui_ctx.set_theme(egui::Theme::Light);
-        let mut style = (*cc.egui_ctx.global_style()).clone();
-        style.spacing.item_spacing = egui::vec2(10., 8.);
-        style.spacing.button_padding = egui::vec2(14., 9.);
-        style
-            .text_styles
-            .insert(egui::TextStyle::Body, egui::FontId::proportional(16.));
-        style
-            .text_styles
-            .insert(egui::TextStyle::Button, egui::FontId::proportional(16.));
-        style.visuals.selection.bg_fill = Color32::from_rgb(42, 105, 87);
-        style.visuals.selection.stroke.color = Color32::WHITE;
-        cc.egui_ctx.set_global_style(style);
+        theme::install(&cc.egui_ctx);
         let mut controller = Controller::new(spawn(demo, cc.egui_ctx.clone()));
         let _ = controller.list();
         let backup = std::env::var_os("HOME")
@@ -68,9 +60,10 @@ impl App {
             view: View::Assignment,
             backup,
             confirm: None,
-            calibration_ack: false,
-            a_test: String::new(),
+            calibration_position: 30,
             keyboard: KeyboardState::default(),
+            appearance: egui::ThemePreference::System,
+            input_test: InputTest::default(),
         }
     }
     fn result(&mut self, result: Result<(), String>) {
@@ -159,114 +152,193 @@ impl App {
             });
         });
     }
-    fn assignment(&mut self, ui: &mut egui::Ui) {
-        ui.heading("キーの出力を変更");
+    fn assignment(&mut self, ui: &mut egui::Ui, popup_at_frame_start: bool) {
         let operation_blocked = self.controller.blocked();
         let blocked = operation_blocked || self.confirm.is_some();
-        // Remember popup ownership before selectors can close it this frame.
-        let popup_was_open = egui::Popup::is_any_open(ui.ctx());
+        // Capture popup ownership before a selector closes in this frame.
+        let popup_was_open = popup_at_frame_start || egui::Popup::is_any_open(ui.ctx());
         let Some(e) = self.controller.editor.as_mut() else {
-            ui.add_space(16.);
-            ui.label("上でデバイスを選び、読み込んでください。");
-            ui.small("保存した設定ファイルからオフラインで編集することもできます。");
+            Palette::of(ui).card().show(ui, |ui| {
+                ui.strong("キーボードの設定を読み込む");
+                ui.label("上でデバイスを選び、読み込んでください。");
+                ui.small("保存したファイルを開いて、オフラインで編集することもできます。");
+            });
             return;
         };
         let mut edit = false;
         let mut trial = false;
-        ui.add_enabled_ui(!blocked,|ui| {
-            let mut mode = e.selection.mode;
+        ui.add_enabled_ui(!blocked, |ui| {
             ui.horizontal_wrapped(|ui| {
-                ui.selectable_value(&mut mode,Mode::Reassign,"出力を変更");
-                ui.selectable_value(&mut mode,Mode::Swap,"2つの位置を交換");
+                let mut mode = e.selection.mode;
+                crate::theme::choice_value(ui, &mut mode, Mode::Reassign, "出力を変更");
+                crate::theme::choice_value(ui, &mut mode, Mode::Swap, "2つの位置を交換");
+                self.keyboard.set_mode(e, mode);
+                ui.separator();
+                let mut layer = e.selection.layer;
+                for (i, label) in ["通常", "右 Fn", "左 Fn"].iter().enumerate() {
+                    crate::theme::choice_value(ui, &mut layer, i, *label);
+                }
+                e.select_layer(layer);
             });
-            self.keyboard.set_mode(e, mode);
-            let mut layer = e.selection.layer;
-            ui.horizontal_wrapped(|ui| {
-                ui.label("レイヤー");
-                for (i,label) in ["通常","右 Fn","左 Fn"].iter().enumerate() { ui.selectable_value(&mut layer,i,*label); }
-            });
-            e.select_layer(layer);
-            ui.group(|ui| {
-                ui.columns(2,|columns| {
-                    columns[0].strong("From · 変更するキーの位置");
-                    if let Some(slot) = slot_selector(&mut columns[0],"from",e.selection.from,&e.draft,e.selection.layer) { e.select_from(slot); }
-                    columns[0].small(format!("刻印（公式配列）: {}", keyboard::key_view(e, e.selection.from).legend));
+            Palette::of(ui).card().show(ui, |ui| {
+                ui.columns(2, |columns| {
+                    columns[0].strong("From · 変更する位置");
+                    if let Some(slot) = slot_selector(
+                        &mut columns[0],
+                        "from",
+                        e.selection.from,
+                        &e.draft,
+                        e.selection.layer,
+                    ) {
+                        e.select_from(slot);
+                    }
+                    columns[0].small(format!(
+                        "刻印: {}",
+                        keyboard::key_view(e, e.selection.from).legend
+                    ));
                     match e.selection.mode {
                         Mode::Reassign => {
                             columns[1].strong("To · 新しい出力");
-                            egui::ComboBox::from_id_salt("output").width(230.).selected_text(if e.output_ready() { key_name(e.selection.to_code) } else { "現在の設定を保持" }).show_ui(&mut columns[1],|ui| {
-                                for code in (1..=74).chain([156,166]) {
-                                    if ui.selectable_label(e.output_ready() && e.selection.to_code == code,key_name(code)).clicked() {
-                                        e.choose_output(code);
-                                        ui.close();
+                            let width = columns[1].available_width();
+                            egui::ComboBox::from_id_salt("output")
+                                .width(width)
+                                .selected_text(if e.output_ready() {
+                                    key_name(e.selection.to_code)
+                                } else {
+                                    "現在の設定を保持"
+                                })
+                                .show_ui(&mut columns[1], |ui| {
+                                    for code in (1..=74).chain([156, 166]) {
+                                        if crate::theme::choice(
+                                            ui,
+                                            e.output_ready() && e.selection.to_code == code,
+                                            key_name(code),
+                                        )
+                                        .clicked()
+                                        {
+                                            e.choose_output(code);
+                                            ui.close();
+                                        }
                                     }
-                                }
-                            });
+                                });
+                            columns[1].small("選んだ出力は「変更を追加」で編集に反映");
                         }
                         Mode::Swap => {
                             columns[1].strong("To · 交換先の位置");
-                            if let Some(slot) = slot_selector(&mut columns[1],"to",e.selection.to_position,&e.draft,e.selection.layer) { e.selection.to_position = slot; }
-                            columns[1].small(format!("刻印（公式配列）: {}", keyboard::key_view(e, e.selection.to_position).legend));
+                            if let Some(slot) = slot_selector(
+                                &mut columns[1],
+                                "to",
+                                e.selection.to_position,
+                                &e.draft,
+                                e.selection.layer,
+                            ) {
+                                e.selection.to_position = slot;
+                            }
+                            columns[1].small(format!(
+                                "刻印: {}",
+                                keyboard::key_view(e, e.selection.to_position).legend
+                            ));
                         }
                     }
                 });
-                let next=e.proposed();
-                match &next {
-                    Ok(next) => {
-                        let changes=e.draft.differences(next).unwrap_or_default();
-                        if changes.is_empty() { ui.small("変更なし · 現在と同じ出力です。"); }
-                        else {
-                            let from=e.selection.layer*66+e.selection.from;
-                            ui.label(format!("位置 #{}: {} → {}",e.selection.from+1,action_label(&e.draft,from),action_label(next,from)));
-                            if e.selection.mode==Mode::Swap {
-                                let to=e.selection.layer*66+e.selection.to_position;
-                                ui.label(format!("位置 #{}: {} → {}",e.selection.to_position+1,action_label(&e.draft,to),action_label(next,to)));
+                let next = e.proposed();
+                ui.horizontal_wrapped(|ui| {
+                    match &next {
+                        Ok(next) => {
+                            let changes = e.draft.differences(next).unwrap_or_default();
+                            if changes.is_empty() {
+                                ui.small("現在と同じ割り当てです");
+                            } else {
+                                let from = e.selection.layer * 66 + e.selection.from;
+                                ui.label(format!(
+                                    "#{}: {} → {}",
+                                    e.selection.from + 1,
+                                    action_label(&e.draft, from),
+                                    action_label(next, from)
+                                ));
+                                if e.selection.mode == Mode::Swap {
+                                    let to = e.selection.layer * 66 + e.selection.to_position;
+                                    ui.label(format!(
+                                        "/ #{}: {} → {}",
+                                        e.selection.to_position + 1,
+                                        action_label(&e.draft, to),
+                                        action_label(next, to)
+                                    ));
+                                }
                             }
-                            if changes.iter().any(|i|i/66!=e.selection.layer) {ui.colored_label(warning(),"Fn の移動は3レイヤーすべてに反映されます。実機での適用は未対応です。");}
+                        }
+                        Err(_) if !e.output_ready() && e.selection.mode == Mode::Reassign => {
+                            ui.small("新しい出力を選ぶまで、現在のデータを保持します");
+                        }
+                        Err(_) => {
+                            ui.colored_label(
+                                Palette::of(ui).warning,
+                                "この割り当ては変更できません。現在のデータを保持します",
+                            );
                         }
                     }
-                    Err(_) if !e.output_ready() && e.selection.mode == Mode::Reassign => {ui.small("現在の設定はそのまま保持されます。変更するときだけ、新しい出力を選んでください。");}
-                    Err(_) => {ui.colored_label(warning(),"この割り当ては変更できません。既存のデータを保持します。");}
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        if ui
+                            .add_enabled(
+                                next.as_ref().is_ok_and(|p| p.records != e.draft.records),
+                                Palette::of(ui).primary_button("変更を追加"),
+                            )
+                            .clicked()
+                        {
+                            edit = true;
+                        }
+                    });
+                });
+                if next.as_ref().is_ok_and(|p| {
+                    e.draft
+                        .differences(p)
+                        .unwrap_or_default()
+                        .iter()
+                        .any(|i| i / 66 != e.selection.layer)
+                }) {
+                    ui.colored_label(
+                        Palette::of(ui).warning,
+                        "Fn の移動は3レイヤーに反映されます。実機での適用は未対応です。",
+                    );
                 }
-                if ui.add_enabled(next.as_ref().is_ok_and(|p|p.records!=e.draft.records),egui::Button::new("変更を追加")).clicked() {edit=true;}
             });
-            keyboard::show(ui, e, &mut self.keyboard,
-                operation_blocked, self.confirm.is_some(), popup_was_open || egui::Popup::is_any_open(ui.ctx()));
-            ui.horizontal(|ui| {
-                if ui.add_enabled(e.can_undo(),egui::Button::new("元に戻す")).clicked() {e.undo();}
-                if ui.add_enabled(e.can_redo(),egui::Button::new("やり直す")).clicked() {e.redo();}
+            Palette::of(ui).card().show(ui, |ui| {
+                keyboard::show(
+                    ui,
+                    e,
+                    &mut self.keyboard,
+                    operation_blocked,
+                    self.confirm.is_some(),
+                    popup_was_open || egui::Popup::is_any_open(ui.ctx()),
+                );
             });
         });
         let changes = e.preview().unwrap_or_default();
-        ui.separator();
-        ui.strong(if e.dirty() {
-            format!("まだデバイスに適用していません · {}件", changes.len())
-        } else {
-            "未適用の変更はありません".into()
-        });
-        egui::ScrollArea::vertical()
-            .id_salt("changes")
-            .max_height(100.)
-            .show(ui, |ui| {
-                for i in changes {
-                    ui.label(change_label(&e.baseline, &e.draft, i));
-                }
-            });
         let gate = exact_trial(&e.baseline, &e.draft, e.selection);
-        if ui
-            .add_enabled(
-                !blocked && self.controller.live && e.dirty() && gate.is_ok(),
-                egui::Button::new(if self.demo {
-                    "デモで適用を確認…"
-                } else {
-                    "変更を確認して適用…"
-                }),
-            )
-            .clicked()
-        {
-            trial = true;
-        }
-        ui.small(if !self.controller.live {"適用するには、選択したデバイスを読み込んでください。"} else if gate.is_err() {"この編集内容はオフラインで保存できます。実機での試験適用は基本キー1つの変更、または2つの交換に限られます。"} else {"実機での適用は試験機能です。確認画面で変更内容と対象を確認してください。"});
+        Palette::of(ui).card().show(ui, |ui| {
+            ui.horizontal_wrapped(|ui| {
+                ui.strong(if e.dirty() { format!("未適用の変更 · {}件", changes.len()) } else { "未適用の変更なし".into() });
+                if ui.add_enabled(!blocked && e.can_undo(), egui::Button::new("元に戻す")).clicked() { e.undo(); }
+                if ui.add_enabled(!blocked && e.can_redo(), egui::Button::new("やり直す")).clicked() { e.redo(); }
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    if ui.add_enabled(!blocked && self.controller.live && e.dirty() && gate.is_ok(), Palette::of(ui).primary_button(if self.demo { "デモで適用を確認…" } else { "変更を確認して適用…" })).clicked() {
+                        trial = true;
+                    }
+                });
+            });
+            ui.small(if !self.controller.live {
+                "適用するには、選択したデバイスを読み直してください。"
+            } else if gate.is_err() {
+                "実機への試験適用は基本キー1つ、または2つの交換に限ります。この編集はファイルに保存できます。"
+            } else {
+                "デバイスへの適用は試験機能です。次の画面で対象と変更内容を確認します。"
+            });
+            if !changes.is_empty() {
+                egui::CollapsingHeader::new("変更の一覧").show(ui, |ui| {
+                    for i in &changes { ui.label(change_label(&e.baseline, &e.draft, *i)); }
+                });
+            }
+        });
         if edit {
             let result = self.controller.edit();
             self.result(result);
@@ -278,122 +350,97 @@ impl App {
             }
         }
     }
-    fn calibration(&mut self, ui: &mut egui::Ui) {
-        ui.heading("Aキーの反応を確認・調整");
-        ui.group(|ui| {
-            ui.strong("まず、キーボードのトリガー設定を切り替える");
-            ui.label("右 Fn を押しながら、刻印 7/& のキーを一度押します。キーを離して、Aを軽く押したときの反応を比べてください。");
-            ui.small("現在の段階はPCから取得できません。説明書では、電源を切ると既定の設定に戻ります。");
-            let guide=trigger_guide(self.controller.editor.as_ref().map(|e|&e.baseline),self.controller.live);
-            ui.small(match guide {
-                TriggerGuide::CapturedShortcut=>"読み込んだ設定では、右Fn＋7の切替アクションを確認できました。",
-                TriggerGuide::CustomMapping=>"読み込んだ設定では、この位置に切替アクションがありません。上の説明は説明書の標準操作です。",
-                TriggerGuide::UnverifiedTarget=>"上の説明はXRGB BLEの説明書の標準操作です。現在の割り当ては未確認です。",
-            });
-            ui.add_enabled_ui(!self.controller.blocked(),|ui| {
-                ui.label("キーボードの入力確認（センサー測定ではありません）");
-                ui.add(egui::TextEdit::singleline(&mut self.a_test).hint_text("ここをクリックして、Aを軽く何度か押してください").desired_width(f32::INFINITY));
-                if ui.small_button("入力を消す").clicked() {self.a_test.clear();}
-            });
-            ui.small("入力はこの画面内だけに保持され、ファイルに保存されません。この案内はデバイスにコマンドを送りません。");
-        });
-        ui.add_space(4.);
-        ui.strong("Aキーのキャリブレーション · 実験的");
-        ui.label(
-            "トリガー設定の切替とは別の操作です。アナログの調整はバックアップで元に戻せません。",
-        );
-        if let Some(target) = &self.controller.attached_target {
-            ui.small(format!(
-                "対象: {} · {}",
-                target.product,
-                short_path(&target.path)
-            ));
-        }
-        let phase = self.controller.calibration.as_ref().map(|s| s.phase);
+    fn calibration(&mut self, ui: &mut egui::Ui, popup_at_frame_start: bool) {
         let pending = self.controller.pending.is_some();
-        match phase {
-            None
-            | Some(
-                CalibrationPhase::Complete | CalibrationPhase::Aborted | CalibrationPhase::Failed,
-            ) => {
-                ui.group(|ui| {
-                    ui.strong("1. すべてのキーを離す");
-                    ui.label("キーボードに触れず、マウスで開始します。");
-                    ui.add_enabled_ui(!self.controller.blocked(), |ui| {
-                        ui.checkbox(
-                            &mut self.calibration_ack,
-                            "実験的な操作で、アナログの調整は復元できないことを理解しました",
-                        );
-                    });
-                    let enabled = self.controller.live
-                        && !pending
-                        && !self.controller.blocked()
-                        && self.calibration_ack;
-                    if ui
-                        .add_enabled(enabled, egui::Button::new("全キーを離して開始"))
-                        .clicked_by(egui::PointerButton::Primary)
-                    {
-                        let result = self
-                            .controller
-                            .begin(self.backup.clone(), Activation::Pointer);
-                        self.result(result);
-                    }
-                });
-                if !self.controller.live {
-                    ui.small("開始するには、選択したデバイスを読み込んでください。");
-                }
-            }
-            Some(CalibrationPhase::AwaitingHeldKeys) => {
-                ui.group(|ui| {
-                    ui.strong("2. 刻印 A のキーを押し続ける");
-                    ui.label("Aだけを物理的に押し続け、マウスで次に進みます。画面のキー選択は送信しません。");
-                    if ui.add_enabled(!pending&&!self.controller.close_requested,egui::Button::new("Aを押したまま、マウスで続ける")).clicked_by(egui::PointerButton::Primary) {let result=self.controller.held(Activation::Pointer);self.result(result);}
-                });
-            }
-            Some(CalibrationPhase::AwaitingFinish) => {
-                ui.group(|ui| {
-                    ui.strong("3. Aを離し、すべてのキーを離して終了");
-                    if ui
-                        .add_enabled(
-                            !pending && !self.controller.close_requested,
-                            egui::Button::new("すべてのキーを離して終了"),
-                        )
-                        .clicked_by(egui::PointerButton::Primary)
-                    {
-                        let result = self.controller.finish(Activation::Pointer);
-                        self.result(result);
-                    }
-                });
-            }
-            Some(_) => {
-                ui.label("デバイスの処理を待っています。");
-            }
-        }
-        if self.controller.calibration_active() {
+        let blocked = self.controller.blocked() || self.confirm.is_some();
+        Palette::of(ui).card().show(ui, |ui| {
+            ui.set_width(ui.available_width());
+            ui.strong(format!(
+                "調整するキー: #{:02} · {}",
+                self.calibration_position + 1,
+                keyboard::physical_legend(self.calibration_position)
+            ));
+            ui.colored_label(Palette::of(ui).warning, "キーごとのしきい値変更は未対応です");
+            ui.label("この機種の個別調整にはまだ対応していません。キーの選択だけでは設定を変更しません。");
+            let value = self.controller.raw_thresholds()
+                .and_then(|read| read.snapshot.value_for_position(self.calibration_position))
+                .map(|value| format!("{value} (0x{value:02X})"))
+                .unwrap_or_else(|| if self.controller.raw_thresholds_pending() { "読み込み中…".into() } else { "未取得".into() });
             ui.horizontal_wrapped(|ui| {
-                ui.spinner();
-                ui.label(if pending {
-                    "処理の完了を待っています。"
-                } else {
-                    "調整中は他のデバイス操作を行えません。"
-                });
-                if ui.button("中止を要求").clicked() {
-                    self.controller.cancel_calibration();
+                ui.label(format!("読み取り時の生しきい値: {value}"));
+                let enabled = self.controller.can_read_raw_thresholds()
+                    && self.confirm.is_none() && !popup_at_frame_start
+                    && !egui::Popup::is_any_open(ui.ctx());
+                if ui.add_enabled(enabled, egui::Button::new("しきい値を読み込む"))
+                    .on_hover_text("キーを離して読み込んでください。読み取り中は入力が一時停止し、補正状態が既定値に戻ることがあります。")
+                    .clicked()
+                {
+                    let result = self.controller.read_raw_thresholds();
+                    self.result(result);
                 }
             });
-            ui.small("Enter・Spaceでは開始しません。中止や終了は、実行中の処理と安全な後処理が返るまで待ちます。");
+            ui.label("通常スキャンの内部値。押し込み量(mm)ではありません。");
+            if !self.controller.calibration_active() {
+                ui.small("キーを離して読み込んでください。読み取り中は入力が一時停止し、補正状態が既定値に戻ることがあります。");
+            }
+            if self.controller.raw_thresholds().is_some_and(|read| read.source == RawThresholdSource::Simulation) {
+                ui.small("DEMO: シミュレーション値です。実機から読み取った値ではありません。");
+            }
+        });
+        if self.controller.calibration_active() {
+            Palette::of(ui).card().show(ui, |ui| {
+                ui.set_width(ui.available_width());
+                ui.strong("進行中の校正 · 全キーに作用");
+                ui.label("選択したキーの個別調整ではありません。アナログの校正はバックアップで元に戻せません。");
+                ui.horizontal_wrapped(|ui| {
+                    ui.spinner();
+                    ui.label(if pending {
+                        "処理と安全な終了を待っています。"
+                    } else {
+                        "中止を要求すると安全な終了処理を行います。"
+                    });
+                    if ui.button("中止を要求").clicked() {
+                        self.controller.cancel_calibration();
+                    }
+                });
+            });
+        }
+        Palette::of(ui).card().show(ui, |ui| {
+            ui.horizontal_wrapped(|ui| {
+                ui.strong("刻印からキーを選択");
+                ui.small("公式配列の刻印 · キーの選択だけでは設定を変更しません");
+            });
+            if let Some(slot) = keyboard::show_physical(
+                ui,
+                self.calibration_position,
+                blocked || popup_at_frame_start || egui::Popup::is_any_open(ui.ctx()),
+            ) {
+                self.calibration_position = slot;
+            }
+        });
+        if let Some(read) = self.controller.raw_thresholds() {
+            egui::CollapsingHeader::new("生しきい値の読み取り記録").show(ui, |ui| {
+                target_details(ui, &read.target);
+                ui.label(&read.snapshot.firmware);
+                let time = read.read_at.duration_since(std::time::UNIX_EPOCH).unwrap_or_default();
+                ui.label(format!("読み取り時刻: Unix {}.{:03}秒 · 接続世代 {}", time.as_secs(), time.subsec_millis(), read.generation));
+                ui.label(match read.source { RawThresholdSource::Device => "読み取り元: 接続中の実機", RawThresholdSource::Simulation => "読み取り元: DEMOの生成値" });
+                ui.small("読み取り時点の通常スキャン用しきい値です。継続的なセンサー測定や、他の動作モードの確認は行いません。");
+                ui.small("読み取り中は入力が一時停止し、補正状態が既定値に戻ることがあります。");
+                ui.small(format!("受信記録: {}パケット", read.snapshot.raw_reports().len()));
+            });
         }
         if let Some(status) = &self.controller.calibration {
             if status.phase == CalibrationPhase::Complete {
-                ui.label("調整の手順が完了しました。タイピングとAの反応を実際に確認してください。");
+                ui.label("校正処理が完了しました。入力テストで実際の反応を確認してください。");
             }
             if matches!(
                 status.phase,
                 CalibrationPhase::Aborted | CalibrationPhase::Failed
             ) {
-                ui.colored_label(warning(),"調整が中断しました。ロック解除の結果を詳細で確認し、次の操作の前に接続し直してください。");
+                ui.colored_label(Palette::of(ui).warning,"校正が中断しました。ロック解除の結果を詳細で確認し、次の操作の前に接続し直してください。");
             }
-            egui::CollapsingHeader::new("調整の結果・対象・バックアップ").show(ui, |ui| {
+            egui::CollapsingHeader::new("校正の結果・対象・バックアップ").show(ui, |ui| {
                 if let Some(target) = &self.controller.attached_target {
                     target_details(ui, target);
                 }
@@ -431,12 +478,57 @@ impl App {
                 }
             });
         } else {
-            egui::CollapsingHeader::new("対象と注意点").show(ui,|ui| {
-                if let Some(target)=&self.controller.attached_target {target_details(ui,target);}
-                ui.label("XRGB V1.0.48 / 0483:502aのみ。実機のアナログ動作と保存は未検証です。");
-                ui.label("ソフトウェアはキーが離れているかを測定しません。キーのIDや選択マスクも送信しません。");
+            egui::CollapsingHeader::new("対象デバイス").show(ui, |ui| {
+                if let Some(target) = &self.controller.attached_target {
+                    target_details(ui, target);
+                }
             });
         }
+    }
+    fn input_test(&mut self, ui: &mut egui::Ui) {
+        let enabled = !self.controller.blocked() && self.confirm.is_none();
+        Palette::of(ui).card().show(ui, |ui| {
+            ui.set_width(ui.available_width());
+            ui.strong("このアプリが受け取った入力");
+            ui.small("このウィンドウにフォーカスしてキーを押してください。入力元のデバイスは識別しません。");
+            ui.horizontal_wrapped(|ui| {
+                let (codes, ambiguous) = self.input_test.codes();
+                let names = codes.iter().map(|code| key_name(*code)).collect::<Vec<_>>().join(" / ");
+                ui.label(format!("押下中: {}", if names.is_empty() { "なし".into() } else { truncate(&names, 70) }));
+                if ambiguous { ui.small("修飾キーの左右は未識別"); }
+                if ui.button("表示を消す").clicked() { self.input_test.text.clear(); self.input_test.clear_held(); }
+            });
+            egui::ScrollArea::vertical().id_salt("input-transcript").max_height(52.).min_scrolled_height(52.)
+                .show(ui, |ui| {
+                    ui.set_min_height(52.);
+                    ui.label(if self.input_test.text.is_empty() { "受け取った文字がここに表示されます" } else { &self.input_test.text });
+                });
+            ui.small("文字はこの画面だけに保持します（最大256文字）。保存・送信はしません。");
+        });
+        Palette::of(ui).card().show(ui, |ui| {
+            ui.set_width(ui.available_width());
+            ui.horizontal_wrapped(|ui| {
+                ui.strong("参照する読み込み時の割り当て");
+                ui.add_enabled_ui(enabled, |ui| {
+                    for (i, label) in ["通常", "右 Fn", "左 Fn"].iter().enumerate() {
+                        crate::theme::choice_value(ui, &mut self.input_test.layer, i, *label);
+                    }
+                });
+            });
+            if !enabled {
+                ui.colored_label(Palette::of(ui).warning, "処理中・確認中は入力テストを停止しています。完了後に再開します。");
+            } else if self.controller.live {
+                ui.small(if self.demo { "DEMOの参照設定 · 同じ出力の位置は複数光ることがあります" } else { "読み込んだ設定を参照 · 同じ出力の位置は複数光ることがあります" });
+            } else {
+                ui.colored_label(Palette::of(ui).warning, "一致表示には、選択したデバイスを読み直してください。文字の受信だけ確認できます。");
+            }
+            if let Some(editor) = &self.controller.editor {
+                let matches = if self.controller.live && enabled { self.input_test.matches(&editor.baseline) } else { Default::default() };
+                keyboard::show_input(ui, &editor.baseline, self.input_test.layer, &matches);
+            } else { ui.label("設定を読み込むと、参照する66キーの配列を表示します。"); }
+            ui.small("出力との一致候補です。Fnレイヤーの実際の状態・センサー値は測定しません。");
+        });
+        ui.small("Fn・Caps Lock・OSに取られるショートカットは表示できない場合があります。貼り付け・IMEの操作は記録しません。");
     }
     fn confirmation(&mut self, ctx: &egui::Context) {
         let Some(confirm) = self.confirm.take() else {
@@ -444,7 +536,10 @@ impl App {
         };
         let mut keep = true;
         let mut action = None;
-        egui::Window::new("内容を確認").collapsible(false).resizable(false).default_width(520.).show(ctx,|ui| {
+        egui::Modal::new(egui::Id::new("confirmation")).show(ctx, |ui| {
+            ui.set_width((ctx.content_rect().width() - 48.).min(520.));
+            ui.heading("内容を確認");
+            let mut execute_label = None;
             match &confirm {
                 Confirm::Read(path) => {
                     ui.label("編集中の内容をどうしますか？");ui.small(format!("読み込み先: {path}"));
@@ -458,14 +553,19 @@ impl App {
                 }
                 Confirm::Apply(approval) => {
                     ui.strong(if self.demo {"デモでの適用"} else {"試験機能として適用します"});
-                    target_details(ui,&approval.target);ui.small(&approval.baseline.firmware);
+                    target_details(ui,&approval.target);ui.label(&approval.baseline.firmware);
                     for i in approval.baseline.differences(&approval.draft).unwrap_or_default() {ui.label(change_label(&approval.baseline,&approval.draft,i));}
                     ui.small(format!("バックアップ先: {}",approval.backup.display()));
                     ui.label(if self.demo {"デバイスには書き込まないシミュレーションです。"} else {"変更前に設定と照明を保存します。実際の出力と電源を切った後の保存は未検証です。"});
-                    if ui.button(if self.demo {"デモで実行"} else {"確認した対象に適用"}).clicked() {action=Some(1);keep=false;}
+                    execute_label = Some(if self.demo {"デモで実行"} else {"確認した対象に適用"});
                 }
             }
-            if ui.button("キャンセル").clicked() {keep=false;}
+            if let Some(label) = execute_label {
+                ui.horizontal(|ui| {
+                    if ui.add(Palette::of(ui).danger_button(label)).clicked() { action=Some(1);keep=false; }
+                    if ui.button("キャンセル").clicked() { keep=false; }
+                });
+            } else if ui.button("キャンセル").clicked() {keep=false;}
         });
         if let Some(action) = action {
             let result = match confirm {
@@ -486,81 +586,158 @@ impl App {
         }
     }
     fn device_controls(&mut self, ui: &mut egui::Ui) {
-        ui.add_enabled_ui(!self.controller.blocked(), |ui| {
-            ui.horizontal_wrapped(|ui| {
-                let mut selected = self.controller.selected_path.clone();
-                egui::ComboBox::from_id_salt("devices")
-                    .width(300.)
-                    .selected_text(
-                        self.controller
-                            .selected_device()
-                            .map(|d| {
-                                format!(
+        Palette::of(ui).card().show(ui, |ui| {
+            ui.set_width(ui.available_width());
+            ui.add_enabled_ui(!self.controller.blocked() && self.confirm.is_none(), |ui| {
+                ui.horizontal_wrapped(|ui| {
+                    let mut selected = self.controller.selected_path.clone();
+                    let selected_label = self
+                        .controller
+                        .selected_device()
+                        .map(|d| compact_product(&d.product))
+                        .unwrap_or_else(|| "デバイスを選択".into());
+                    let response = egui::ComboBox::from_id_salt("devices")
+                        .width((ui.available_width() - 205.).clamp(160., 340.))
+                        .selected_text(selected_label)
+                        .show_ui(ui, |ui| {
+                            for device in &self.controller.devices {
+                                let label = format!(
                                     "{} · {}",
-                                    if d.product.is_empty() {
-                                        "NIZ keyboard"
-                                    } else {
-                                        &d.product
-                                    },
-                                    short_path(&d.path)
-                                )
-                            })
-                            .unwrap_or_else(|| "デバイスを選択".into()),
-                    )
-                    .show_ui(ui, |ui| {
-                        for device in &self.controller.devices {
-                            if ui
-                                .selectable_value(
+                                    compact_product(&device.product),
+                                    short_path(&device.path)
+                                );
+                                if crate::theme::choice_value(
+                                    ui,
                                     &mut selected,
                                     Some(device.path.clone()),
-                                    format!("{} · {}", device.product, short_path(&device.path)),
+                                    label,
                                 )
+                                .on_hover_text(format!("{}\n{}", device.product, device.path))
                                 .clicked()
-                            {
-                                ui.close();
+                                {
+                                    ui.close();
+                                }
                             }
-                        }
-                    });
-                if selected != self.controller.selected_path
-                    && let Some(path) = selected
-                {
-                    let result = self.controller.select_device(path);
-                    self.result(result);
-                }
-                if ui.button("再検索").clicked() {
-                    let result = self.controller.list();
-                    self.result(result);
-                }
-                if ui
-                    .add_enabled(
-                        self.controller.selected_device().is_some(),
-                        egui::Button::new("読み込む"),
+                        });
+                    if let Some(device) = self.controller.selected_device() {
+                        response
+                            .response
+                            .on_hover_text(format!("{}\n{}", device.product, device.path));
+                    }
+                    if selected != self.controller.selected_path
+                        && let Some(path) = selected
+                    {
+                        let result = self.controller.select_device(path);
+                        self.result(result);
+                    }
+                    if ui.button("再検索").clicked() {
+                        let result = self.controller.list();
+                        self.result(result);
+                    }
+                    if ui
+                        .add_enabled(
+                            self.controller.selected_device().is_some(),
+                            Palette::of(ui).primary_button("読み込む"),
+                        )
+                        .clicked()
+                    {
+                        self.read_selected();
+                    }
+                });
+            });
+            ui.horizontal_wrapped(|ui| {
+                let (label, color) = if self.controller.pending.is_some() {
+                    ("処理中", Palette::of(ui).muted)
+                } else if self.controller.failure.is_some() {
+                    ("処理に失敗 · 詳細を確認", Palette::of(ui).warning)
+                } else if self.controller.calibration_active() {
+                    ("キャリブレーション中", Palette::of(ui).warning)
+                } else if self.controller.live && self.controller.attached_target.is_some() {
+                    (
+                        if self.demo {
+                            "DEMO · 読み込み済み"
+                        } else {
+                            "読み込み済み"
+                        },
+                        Palette::of(ui).accent_text,
                     )
-                    .clicked()
-                {
-                    self.read_selected();
+                } else if self.controller.editor.is_some() {
+                    (
+                        "オフライン · 適用には読み直しが必要",
+                        Palette::of(ui).warning,
+                    )
+                } else if self.controller.devices.is_empty() {
+                    ("デバイス未検出 · USB接続を確認", Palette::of(ui).muted)
+                } else {
+                    ("未読み込み", Palette::of(ui).muted)
+                };
+                if self.controller.pending.is_some() {
+                    ui.spinner();
                 }
+                ui.colored_label(color, RichText::new(label).size(12.));
+                if self.demo {
+                    ui.small("実際のキーボードには接続しません");
+                }
+                egui::CollapsingHeader::new("デバイス情報").show(ui, |ui| {
+                    if let Some(device) = self.controller.selected_device() {
+                        target_details(ui, &Target::from(device));
+                    }
+                    if let Some(target) = &self.controller.attached_target {
+                        ui.label(if self.controller.live {
+                            "表示中の設定の読み込み元"
+                        } else {
+                            "最後に読み込んだ設定の元（現在は未接続扱い）"
+                        });
+                        target_details(ui, target);
+                        if let Some(editor) = &self.controller.editor {
+                            ui.label(&editor.baseline.firmware);
+                        }
+                    }
+                });
             });
         });
-        if self.controller.devices.is_empty() && self.controller.pending.is_none() {
-            ui.small("デバイスが見つかりません。USB接続を確認し、再検索してください。");
-        }
-        if let Some(target) = &self.controller.attached_target {
-            egui::CollapsingHeader::new(if self.controller.live {
-                "読み込んだデバイス"
-            } else {
-                "最後に読み込んだデバイス（現在は未接続扱い）"
-            })
-            .show(ui, |ui| {
-                target_details(ui, target);
-                if let Some(editor) = &self.controller.editor {
-                    ui.small(&editor.baseline.firmware);
-                }
-            });
-        }
     }
 }
 impl eframe::App for App {
+    fn raw_input_hook(&mut self, ctx: &egui::Context, input: &mut egui::RawInput) {
+        self.input_test
+            .reference(self.controller.editor.as_ref().map(|e| &e.baseline));
+        let test_view = self.view == View::InputTest;
+        let focused = input.focused
+            && !input
+                .events
+                .iter()
+                .any(|event| matches!(event, egui::Event::WindowFocused(false)));
+        let capture = test_view && focused && !self.controller.blocked() && self.confirm.is_none();
+        if !capture {
+            self.input_test.clear_held();
+        }
+        if !test_view {
+            return;
+        }
+        if capture {
+            for event in &input.events {
+                self.input_test.event(event);
+            }
+        }
+        // Consume before egui's focus/shortcut pass. This is app-local only.
+        input.events.retain(|event| {
+            !matches!(
+                event,
+                egui::Event::Key { .. }
+                    | egui::Event::Text(_)
+                    | egui::Event::Copy
+                    | egui::Event::Cut
+                    | egui::Event::Paste(_)
+                    | egui::Event::Ime(_)
+                    | egui::Event::ModifiersChanged(_)
+            )
+        });
+        ctx.input_mut(|state| {
+            state.keys_down.clear();
+            state.modifiers = Default::default();
+        });
+    }
     fn logic(&mut self, ctx: &egui::Context, _: &mut eframe::Frame) {
         while let Ok(event) = self.controller.port.receiver.try_recv() {
             self.controller.process(event);
@@ -580,29 +757,61 @@ impl eframe::App for App {
     }
     fn ui(&mut self, root: &mut egui::Ui, _: &mut eframe::Frame) {
         let ctx = root.ctx().clone();
-        egui::Frame::central_panel(root.style()).inner_margin(20.).show(root,|ui| {
-            egui::ScrollArea::vertical().show(ui,|ui| {
-                ui.horizontal_wrapped(|ui| {ui.heading("NIZ Tools");ui.small("キーの割り当てと反応の調整");});
-                if self.demo {ui.colored_label(warning(),RichText::new("DEMO · 実際のキーボードには接続しません").strong());}
+        // Header popups may consume their closing event before the board is drawn.
+        let popup_at_frame_start = egui::Popup::is_any_open(&ctx);
+        if self.controller.calibration_active() {
+            self.view = View::Calibration;
+        }
+        let palette = Palette::of(root);
+        egui::Frame::central_panel(root.style()).fill(palette.root)
+            .inner_margin(16.).show(root, |ui| {
+            egui::ScrollArea::vertical().id_salt("main").auto_shrink([false, false]).show(ui, |ui| {
+                ui.horizontal(|ui| {
+                    ui.heading("NIZ Utility");
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        ui.add_enabled_ui(self.confirm.is_none(), |ui| {
+                            let before = self.appearance;
+                            egui::ComboBox::from_id_salt("appearance").width(100.)
+                                .selected_text(appearance_name(self.appearance))
+                                .show_ui(ui, |ui| {
+                                    for preference in [egui::ThemePreference::System, egui::ThemePreference::Light, egui::ThemePreference::Dark] {
+                                        if crate::theme::choice_value(ui, &mut self.appearance, preference, appearance_name(preference)).clicked() { ui.close(); }
+                                    }
+                                }).response.on_hover_text("このアプリの外観。システムを選ぶとOSの外観に追従します。");
+                            ui.small("外観");
+                            if before != self.appearance {
+                                ctx.set_theme(self.appearance);
+                                // Existing UIs retain their style until the next frame.
+                                ctx.request_repaint();
+                            }
+                        });
+                    });
+                });
                 self.device_controls(ui);
-                ui.horizontal_wrapped(|ui| {
-                    ui.selectable_value(&mut self.view,View::Assignment,"キーの割り当て");
-                    ui.selectable_value(&mut self.view,View::Calibration,"Aキーの反応・調整");
-                });ui.separator();
-                match self.view {View::Assignment=>self.assignment(ui),View::Calibration=>self.calibration(ui)}
-                ui.separator();ui.add_enabled_ui(!self.controller.blocked(), |ui| {
+                ui.add_enabled_ui(self.confirm.is_none() && !self.controller.calibration_active(), |ui| {
+                    ui.horizontal_wrapped(|ui| {
+                        crate::theme::choice_value(ui, &mut self.view, View::Assignment, "キーの割り当て");
+                        crate::theme::choice_value(ui, &mut self.view, View::Calibration, "入力しきい値");
+                        crate::theme::choice_value(ui, &mut self.view, View::InputTest, "入力テスト");
+                    });
+                });
+                if self.view != View::InputTest { self.input_test.clear_held(); }
+                match self.view { View::Assignment => self.assignment(ui, popup_at_frame_start), View::Calibration => self.calibration(ui, popup_at_frame_start), View::InputTest => self.input_test(ui) }
+                ui.add_enabled_ui(!self.controller.blocked() && self.confirm.is_none(), |ui| {
                     egui::CollapsingHeader::new("ファイル・バックアップ").show(ui, |ui| self.files(ui));
                 });
-                if self.controller.pending.is_some() {ui.horizontal(|ui| {ui.spinner();ui.label("デバイスの処理を待っています…");});}
-                if self.controller.failure.is_some() {ui.colored_label(warning(),"処理を完了できませんでした。編集内容は保持しています。操作の記録を確認してください。");}
+                if self.controller.failure.is_some() {
+                    ui.colored_label(palette.warning, "処理を完了できませんでした。編集は保持しています。詳細を確認してください。");
+                }
                 if !self.controller.message.is_empty() {
-                    egui::CollapsingHeader::new("操作の記録・詳細").show(ui,|ui| {
-                        if self.demo {ui.small("シミュレーションの結果です。実機での動作確認ではありません。");}
+                    ui.add(egui::Label::new(RichText::new(format!("操作結果: {}", short_message(&self.controller.message))).small().color(palette.muted)).wrap());
+                    egui::CollapsingHeader::new("操作の記録・詳細").show(ui, |ui| {
+                        if self.demo { ui.small("シミュレーションの結果です。実機での動作確認ではありません。"); }
                         ui.label(&self.controller.message);
-                        if let Some(failure)=&self.controller.failure {
-                            ui.label(format!("変更する出力の試行: {} / 保持した受信パケット: {}",failure.began_write,failure.raw_reports.len()));
-                            if let Some(path)=&failure.backup {ui.small(format!("バックアップ: {}",path.display()));}
-                            if let Some(status)=&failure.calibration {ui.label(format!("元の段階: {:?} / ロック解除: {:?} / トレース: {}パケット",status.failure_phase,status.unlock,status.trace.len()));}
+                        if let Some(failure) = &self.controller.failure {
+                            ui.label(format!("変更する出力の試行: {} / 保持した受信パケット: {}", failure.began_write, failure.raw_reports.len()));
+                            if let Some(path) = &failure.backup { ui.small(format!("バックアップ: {}", path.display())); }
+                            if let Some(status) = &failure.calibration { ui.label(format!("元の段階: {:?} / ロック解除: {:?} / トレース: {}パケット", status.failure_phase, status.unlock, status.trace.len())); }
                         }
                     });
                 }
@@ -611,8 +820,36 @@ impl eframe::App for App {
         self.confirmation(&ctx);
     }
 }
-fn warning() -> Color32 {
-    Color32::from_rgb(154, 88, 22)
+fn appearance_name(preference: egui::ThemePreference) -> &'static str {
+    match preference {
+        egui::ThemePreference::System => "システム",
+        egui::ThemePreference::Light => "ライト",
+        egui::ThemePreference::Dark => "ダーク",
+    }
+}
+fn compact_product(product: &str) -> String {
+    if product.is_empty() {
+        "NIZ keyboard".into()
+    } else {
+        truncate(product, 32)
+    }
+}
+fn compact_action(action: &str) -> String {
+    truncate(action, 24)
+}
+fn short_message(message: &str) -> String {
+    if message == "Fresh device baseline read. No settings were written." {
+        return "設定を読み込みました".into();
+    }
+    truncate(message.lines().next().unwrap_or(message), 96)
+}
+fn truncate(value: &str, max: usize) -> String {
+    let mut chars = value.chars();
+    let mut text: String = chars.by_ref().take(max).collect();
+    if chars.next().is_some() {
+        text.push('…');
+    }
+    text
 }
 fn layer_name(layer: usize) -> &'static str {
     ["通常", "右 Fn", "左 Fn"]
@@ -638,24 +875,24 @@ fn slot_selector(
 ) -> Option<usize> {
     let mut selected = None;
     egui::ComboBox::from_id_salt(id)
-        .width(230.)
+        .width(ui.available_width())
         .selected_text(format!(
-            "位置 #{:02} · 現在 {}",
+            "#{:02} · {}",
             position + 1,
-            action_label(profile, layer * 66 + position)
+            compact_action(&action_label(profile, layer * 66 + position))
         ))
         .show_ui(ui, |ui| {
             for i in 0..66 {
-                if ui
-                    .selectable_label(
-                        position == i,
-                        format!(
-                            "位置 #{:02} · 現在 {}",
-                            i + 1,
-                            action_label(profile, layer * 66 + i)
-                        ),
-                    )
-                    .clicked()
+                if crate::theme::choice(
+                    ui,
+                    position == i,
+                    format!(
+                        "#{:02} · {}",
+                        i + 1,
+                        compact_action(&action_label(profile, layer * 66 + i))
+                    ),
+                )
+                .clicked()
                 {
                     selected = Some(i);
                     ui.close();
@@ -665,21 +902,25 @@ fn slot_selector(
     selected
 }
 fn target_details(ui: &mut egui::Ui, target: &Target) {
-    ui.strong(format!(
+    ui.label(format!(
         "対象: {} · {}",
         target.product,
         short_path(&target.path)
     ));
-    ui.small(format!(
+    ui.label(format!(
         "識別情報: {:04x}:{:04x} / usage {:04x}:{}",
         target.identity.vendor_id,
         target.identity.product_id,
         target.identity.usage_page,
         target.identity.usage
     ));
-    ui.small(format!("接続先: {}", target.path));
+    ui.label(format!("接続先: {}", target.path));
 }
 fn short_path(path: &str) -> String {
     let tail = path.chars().rev().take(24).collect::<String>();
     tail.chars().rev().collect()
 }
+
+#[cfg(test)]
+#[path = "app_tests.rs"]
+mod tests;

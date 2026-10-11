@@ -1,0 +1,24 @@
+   Compiling niz-gui v0.1.0 (/Users/devonly/Developer/personal/NIZ/crates/niz-gui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.31s
+     Running tests/raw_thresholds_controller.rs (target/debug/deps/raw_thresholds_controller-d1ee3d9e42088409)
+
+running 6 tests
+test stale_raw_tickets_and_duplicate_completion_cannot_replace_snapshot ... ok
+test manual_raw_read_binds_target_and_preserves_editor_history ... ok
+test unsupported_offline_busy_and_close_states_never_dispatch_raw_read ... ok
+test raw_snapshot_accessor_never_exposes_mutated_target_or_baseline ... ok
+test raw_reply_rejects_wrong_metadata_target_source_and_response_command ... ok
+test raw_snapshot_invalidates_on_connection_source_write_error_and_close ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/raw_thresholds_worker.rs (target/debug/deps/raw_thresholds_worker-59b62a4cc3b0f373)
+
+running 4 tests
+test raw_worker_calls_one_reader_and_returns_the_owned_target ... ok
+test wrong_ticket_target_and_unsupported_baseline_never_enter_raw_backend ... ok
+test raw_io_or_metadata_failure_poison_worker_until_explicit_baseline_read ... ok
+test demo_raw_reader_is_simulated_and_calibration_ownership_blocks_it ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.91s
+

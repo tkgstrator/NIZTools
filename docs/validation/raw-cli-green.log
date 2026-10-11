@@ -1,0 +1,30 @@
+   Compiling niz-device v0.1.0 (/Users/devonly/Developer/personal/NIZ/crates/niz-device)
+   Compiling niz-cli v0.1.0 (/Users/devonly/Developer/personal/NIZ/crates/niz-cli)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.42s
+     Running unittests src/main.rs (target/debug/deps/niz-e366b437a0f9aa31)
+
+running 5 tests
+test trial_result_tests::transaction_outcome_serialization_is_explicit ... ok
+test trial_result_tests::noop_trial_message_reports_backup_without_verification_claim ... ok
+test trial_result_tests::changed_result_message_distinguishes_actual_settings_and_rgb_checks ... ok
+test diagnostic_tests::raw_threshold_command_is_read_only_and_cannot_select_other_modes ... ok
+test diagnostic_tests::capture_saves_exact_readback_bytes_and_partial_write_context ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/offline.rs (target/debug/deps/offline-46b5c427a66ce77a)
+
+running 10 tests
+test trial_swap_requires_explicit_confirmation_before_device_open ... ok
+test trial_without_confirmation_never_opens_device ... ok
+test malformed_inspect_is_nonzero ... ok
+test invalid_set_does_not_publish_output ... ok
+test opaque_only_diff_identifies_changed_report_byte_and_values ... ok
+test timing_only_diff_shows_all_behavior_parameters ... ok
+test diff_reports_exact_changed_record ... ok
+test help_lists_commands_and_trial_confirmation ... ok
+test inspect_and_set_preserve_unknown_bytes ... ok
+test offline_swap_moves_raw_records_and_second_swap_restores_fixture ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.49s
+

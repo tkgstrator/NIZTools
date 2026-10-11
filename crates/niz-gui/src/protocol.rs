@@ -1,6 +1,6 @@
 use crate::editor::Selection;
 use niz_core::Profile;
-use niz_device::{ApplyOutcome, CalibrationStatus, DeviceDescriptor, SnapshotPaths};
+use niz_device::{ApplyOutcome, CalibrationStatus, DeviceDescriptor, RawThresholds, SnapshotPaths};
 use std::{
     path::PathBuf,
     sync::{Arc, atomic::AtomicBool},
@@ -31,6 +31,7 @@ pub enum Command {
     Read {
         path: String,
     },
+    ReadRawThresholds,
     Trial {
         draft: Profile,
         selection: Selection,
@@ -80,12 +81,22 @@ impl From<String> for Failure {
         }
     }
 }
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RawThresholdSource {
+    Device,
+    Simulation,
+}
 #[derive(Debug)]
 pub enum Response {
     Devices(Vec<DeviceDescriptor>),
     Read {
         profile: Profile,
         cancel: Arc<AtomicBool>,
+    },
+    RawThresholds {
+        snapshot: RawThresholds,
+        target: Target,
+        source: RawThresholdSource,
     },
     Applied {
         profile: Profile,

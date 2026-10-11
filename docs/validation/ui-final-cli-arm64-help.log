@@ -1,0 +1,23 @@
+ATOM66 macOS configuration utility. Ordinary hardware writes are UNQUALIFIED.
+
+Usage: niz <COMMAND>
+
+Commands:
+  devices           
+  info              
+  raw-thresholds    Read the exact Atom66 firmware's raw normal-scan threshold snapshot
+  backup            
+  inspect           
+  diff              
+  set               
+  swap              
+  trial-swap        
+  import            
+  apply             
+  restore           
+  trial-single-key  
+  help              Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help     Print help
+  -V, --version  Print version

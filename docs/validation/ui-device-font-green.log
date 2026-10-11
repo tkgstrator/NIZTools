@@ -1,0 +1,9 @@
+   Compiling niz-gui v0.1.0 (/Users/devonly/Developer/personal/NIZ/crates/niz-gui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.12s
+     Running unittests src/lib.rs (target/debug/deps/niz_gui-ef2579533dad9ba6)
+
+running 1 test
+test app::tests::expanded_device_information_uses_one_body_font_for_all_rows ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 39 filtered out; finished in 0.44s
+

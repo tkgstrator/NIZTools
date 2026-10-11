@@ -1,0 +1,81 @@
+{
+  "timestamp_utc": "2026-10-11T06:51:48.893449+00:00",
+  "host": "devonlys-MacBook-Pro.local",
+  "workspace": "/Users/devonly/Developer/personal/NIZ",
+  "scope": "all GUI Rust sources and tests plus debug binary; Core/Device/CLI belong to other workers",
+  "files": {
+    "crates/niz-gui/src/app.rs": {
+      "sha256": "ed0d697d611dca450148ce834ec318408c05156f7b840b6d615a898c4b19c1f5",
+      "bytes": 45876
+    },
+    "crates/niz-gui/src/app_tests.rs": {
+      "sha256": "8669ddb667f99ed79dff5651ee7b0a6645e65aeb0ca92c932ac6d8848511d3f4",
+      "bytes": 72996
+    },
+    "crates/niz-gui/src/controller.rs": {
+      "sha256": "0b192317bcf6ec1a66b6cc3227efc6cf08051e8d7184f2b964206194284bab6b",
+      "bytes": 25415
+    },
+    "crates/niz-gui/src/editor.rs": {
+      "sha256": "16ca7f858a3c49c1382ef82aeb9891b8ac9eda017f9842be4e57cd7f00cbe1ec",
+      "bytes": 9590
+    },
+    "crates/niz-gui/src/input_test.rs": {
+      "sha256": "5b0f21003a492214df2c631fc793b28a6825e767053ca532e35e0165833fd4b5",
+      "bytes": 14947
+    },
+    "crates/niz-gui/src/keyboard.rs": {
+      "sha256": "994f0ce165ae17f927c53fdb19d905d4c15a3b45dcbbbf9661db027259a3a9e5",
+      "bytes": 15254
+    },
+    "crates/niz-gui/src/lib.rs": {
+      "sha256": "e8f574c5ab061c2da2189acf38225e0d9eee07b69bae809d023dcd06e5fb02c3",
+      "bytes": 128
+    },
+    "crates/niz-gui/src/main.rs": {
+      "sha256": "e2e0029f19dfb6be16ea137adcaa41bb4fd424a8e54b82110bcef61b19841aac",
+      "bytes": 502
+    },
+    "crates/niz-gui/src/protocol.rs": {
+      "sha256": "e5568504d2700c11f066c73e7615b741aaf0dea6874f204dcdc4c30df9270834",
+      "bytes": 2726
+    },
+    "crates/niz-gui/src/theme.rs": {
+      "sha256": "9838343720683b60dd279b1a66eea6ebaf087c1a62efa75167c1e38d832e8ac6",
+      "bytes": 7711
+    },
+    "crates/niz-gui/src/worker.rs": {
+      "sha256": "555ee752a0db38cb9ff68084fb9b11cb82ad960f2ba32a3707d54ca3255da399",
+      "bytes": 18877
+    },
+    "crates/niz-gui/tests/controller.rs": {
+      "sha256": "ad253d840558db35c824e466167f404acc662b96d6eee01c4671c77f66e72683",
+      "bytes": 20017
+    },
+    "crates/niz-gui/tests/editor.rs": {
+      "sha256": "3b41475d9a5b29f91edd286e184ee3e38026d0a9f89afb6d9b1ad7c055c0066a",
+      "bytes": 5480
+    },
+    "crates/niz-gui/tests/keyboard.rs": {
+      "sha256": "3604de31b4124902eb323d156c6e1ea6fc55fb76d11c53956a3c12a0e153f3fb",
+      "bytes": 13838
+    },
+    "crates/niz-gui/tests/raw_thresholds_controller.rs": {
+      "sha256": "c0570cba4f231461713ac5305a8ab875da029f601d8ee4a1d69dee536a2d5041",
+      "bytes": 8807
+    },
+    "crates/niz-gui/tests/raw_thresholds_worker.rs": {
+      "sha256": "e20ea4c1c7e9a29fd0eea2b3cb3715bc146a6bea2added355e139119e4b18fe1",
+      "bytes": 7037
+    },
+    "crates/niz-gui/tests/worker.rs": {
+      "sha256": "ab6473f660c0846dd0965a42d4c2842e27af5fe670c9e4b6e63c12f21349b8cc",
+      "bytes": 11198
+    },
+    "target/debug/niz-gui": {
+      "sha256": "76503900fafffa6b5d565c018fa7f14a3d0843f14ec78b448aba20ffd7d32f3e",
+      "bytes": 48229032
+    }
+  },
+  "verification_note": "Bounded accessibility follow-up: only reader clicked() and app tests changed; all other GUI source/tests unchanged; fresh debug build."
+}

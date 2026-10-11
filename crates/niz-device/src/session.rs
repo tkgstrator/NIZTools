@@ -183,6 +183,9 @@ impl Session {
         }
     }
     fn version_inner(&mut self) -> Result<String> {
+        self.version_capture_inner().map(|(version, _)| version)
+    }
+    fn version_capture_inner(&mut self) -> Result<(String, Report)> {
         self.prepare_transaction()?;
         self.send(&command(0xf9))?;
         let r = self.receive(self.io.now_ms() + 1000)?;
@@ -202,7 +205,7 @@ impl Session {
             }
             Ok(s.into())
         };
-        parse().map_err(|mut e| {
+        parse().map(|version| (version, r)).map_err(|mut e| {
             e.raw_reports.push(r.to_vec());
             e
         })
@@ -211,6 +214,137 @@ impl Session {
         self.ready()?;
         let r = self.version_inner();
         self.poison(r)
+    }
+    /// Manually read the exact pinned firmware's RAM R table with one fresh F9
+    /// request and one DC mode-1 request. The getter pauses/resets scanner output
+    /// and restores active compensation from its configured/default byte, not
+    /// from the prior active compensation. It does not change B/T/R tables, the
+    /// global factor, or flash. Any failure after a possible DC dispatch holds the
+    /// owned transport/lock through bounded passive capture/settling; this cannot
+    /// confirm scanner restoration. No retry or firmware recovery command is sent.
+    pub fn read_raw_thresholds(&mut self) -> Result<crate::RawThresholds> {
+        self.ready()?;
+        if !crate::supports_raw_thresholds(&self.identity, EXPERIMENTAL_FIRMWARE) {
+            return Err(Error::new(
+                "raw thresholds require exact 0483:502a 008c:1 identity",
+            ));
+        }
+        let result = self.raw_thresholds_inner();
+        self.poison(result)
+    }
+    fn raw_thresholds_inner(&mut self) -> Result<crate::RawThresholds> {
+        let deadline = self.io.now_ms().saturating_add(30_000);
+        let (firmware, version_report) = self.version_capture_inner()?;
+        let mut evidence = vec![version_report.to_vec()];
+        let mut dc_attempted = false;
+        let transaction = (|| {
+            if !crate::supports_raw_thresholds(&self.identity, &firmware) {
+                return Err(Error::new(
+                    "fresh F9 firmware is not qualified for raw thresholds",
+                ));
+            }
+            if self.last_read.as_ref().is_some_and(|profile| {
+                profile.identity != self.identity || profile.firmware != firmware
+            }) {
+                return Err(Error::new(
+                    "fresh F9 identity/firmware differs from the retained baseline",
+                ));
+            }
+            // After a fresh version response, excess input is a failed boundary,
+            // not a stale queue that may be silently drained before dispatch.
+            if let Some(extra) = self.io.queued_input().map_err(Error::new)? {
+                evidence.push(extra);
+                return Err(Error::new(
+                    "unexpected queued input after fresh F9; DC not sent",
+                ));
+            }
+            if self.io.now_ms() >= deadline {
+                return Err(Error::new("stream exceeded 30-second deadline"));
+            }
+            let mut request = command(0xdc);
+            request[2] = 1;
+            // Even an error or short write can have delivered the read request.
+            dc_attempted = true;
+            self.send(&request)?;
+            let mut reports = Vec::with_capacity(11);
+            let mut decoder = niz_core::RawThresholdDecoder::default();
+            for _ in 0..11 {
+                let report = self.receive(deadline)?;
+                evidence.push(report.to_vec());
+                decoder.push(&report)?;
+                reports.push(report);
+            }
+            // Mode 1 has no terminator or reference frame. A nonblocking probe
+            // prevents accepting queued excess data as a future transaction.
+            if let Some(extra) = self.io.queued_input().map_err(Error::new)? {
+                evidence.push(extra);
+                return Err(Error::new(
+                    "unexpected queued input after raw threshold rows",
+                ));
+            }
+            if self.io.now_ms() > deadline {
+                return Err(Error::new("stream exceeded 30-second deadline"));
+            }
+            decoder.finish()?;
+            crate::RawThresholds::from_reports(self.identity.clone(), firmware, reports)
+        })();
+        transaction.map_err(|mut error: Error| {
+            evidence.append(&mut error.raw_reports);
+            error.raw_reports = evidence;
+            if dc_attempted {
+                self.settle_failed_raw_threshold_read(&mut error);
+            }
+            error
+        })
+    }
+    fn settle_failed_raw_threshold_read(&mut self, error: &mut Error) {
+        const BUDGET_MS: u64 = 2000;
+        const STEP_MS: u64 = 50;
+        const MAX_ATTEMPTS: usize = 40;
+        const MAX_CAPTURED_REPORTS: usize = 16;
+        let started = self.io.now_ms();
+        let mut captured = 0;
+        let mut attempts = 0;
+        let mut requested_wait = 0;
+        let mut probe_error = None;
+        // Keep self.io and its native per-path lock owned during this phase.
+        // No output is permitted. Attempt/report caps also bound a broken clock.
+        for _ in 0..MAX_ATTEMPTS {
+            let elapsed = self.io.now_ms().saturating_sub(started);
+            if elapsed >= BUDGET_MS {
+                break;
+            }
+            if probe_error.is_none() && captured < MAX_CAPTURED_REPORTS {
+                attempts += 1;
+                match self.io.queued_input() {
+                    Ok(Some(bytes)) => {
+                        error.raw_reports.push(bytes);
+                        captured += 1;
+                    }
+                    Ok(None) => {}
+                    Err(message) => probe_error = Some(message),
+                }
+            }
+            let remaining = BUDGET_MS.saturating_sub(self.io.now_ms().saturating_sub(started));
+            if remaining == 0 {
+                break;
+            }
+            let wait = STEP_MS.min(remaining);
+            self.io.sleep_ms(wait);
+            requested_wait += wait;
+        }
+        let elapsed = self.io.now_ms().saturating_sub(started);
+        error.message.push_str(&format!(
+            "; DC delivery may have occurred; passive settling held the owned session/lock: {elapsed} ms elapsed, {requested_wait} ms requested waits, {attempts} probes, {captured} captured reports; scanner restoration not confirmed",
+        ));
+        if captured == MAX_CAPTURED_REPORTS {
+            error.message.push_str("; passive report limit reached");
+        }
+        if let Some(message) = probe_error {
+            error
+                .message
+                .push_str(&format!("; passive capture stopped: {message}"));
+        }
     }
     fn recognized(version: &str) -> bool {
         let v = version.to_ascii_uppercase();

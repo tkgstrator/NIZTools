@@ -1,0 +1,23 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.15s
+     Running unittests src/lib.rs (target/debug/deps/niz_device-1e4c18fed1374995)
+
+running 16 tests
+test raw_threshold_tests::eligibility_and_read_reject_each_non_exact_identity_before_any_command ... ok
+test raw_threshold_tests::post_dc_passive_queue_failure_keeps_original_error_and_still_holds_bounded_wait ... ok
+test raw_threshold_tests::getter_uses_only_fresh_f9_and_exact_zero_padded_dc_mode_one ... ok
+test raw_threshold_tests::eligibility_and_fresh_version_gate_reject_every_non_exact_firmware_before_dc ... ok
+test raw_threshold_tests::offline_snapshot_requires_exact_metadata_and_complete_valid_rows ... ok
+test raw_threshold_tests::post_f9_queued_input_is_evidence_of_a_failed_transaction_and_prevents_dc ... ok
+test raw_threshold_tests::overall_fake_clock_deadline_rejects_even_complete_last_row_with_evidence ... ok
+test raw_threshold_tests::passive_settle_has_attempt_and_report_limits_even_if_clock_never_advances ... ok
+test raw_threshold_tests::stale_queued_frames_are_drained_and_post_stream_extras_fail_closed ... ok
+test raw_threshold_tests::failed_queue_preparation_short_output_and_unknown_delivery_never_retry ... ok
+test raw_threshold_tests::malformed_short_timeout_extra_and_io_failed_dc_responses_all_settle_without_output ... ok
+test raw_threshold_tests::malformed_stream_keeps_every_received_frame_and_poison_prevents_retry ... ok
+test raw_threshold_tests::successful_getter_preserves_existing_baseline_and_generation ... ok
+test raw_threshold_tests::truncated_oversize_missing_and_io_failed_streams_preserve_partial_evidence ... ok
+test raw_threshold_tests::stale_baseline_firmware_cannot_authorize_a_fresh_different_device_firmware ... ok
+test raw_threshold_tests::uncertain_dc_delivery_passively_captures_remaining_reports_while_retaining_path_lock ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 83 filtered out; finished in 0.01s
+

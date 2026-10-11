@@ -48,6 +48,13 @@ impl Backend for Fake {
     fn baseline(&self) -> Option<&Profile> {
         Some(&self.profile)
     }
+    fn read_raw_thresholds(
+        &mut self,
+    ) -> Result<(niz_device::RawThresholds, RawThresholdSource), Failure> {
+        Err(Failure::from(
+            "No analog fixture in this legacy fake".to_string(),
+        ))
+    }
     fn trial(&mut self, s: Selection, _: &Path) -> Result<Response, Failure> {
         self.trial.push(s);
         Ok(Response::Applied {

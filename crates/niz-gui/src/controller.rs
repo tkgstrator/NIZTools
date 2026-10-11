@@ -3,7 +3,7 @@ use crate::{
     protocol::*,
 };
 use niz_core::Profile;
-use niz_device::{CalibrationPhase, CalibrationStatus};
+use niz_device::{CalibrationPhase, CalibrationStatus, RawThresholds, supports_raw_thresholds};
 use std::{
     path::PathBuf,
     sync::{
@@ -35,6 +35,15 @@ struct Pending {
     command: Command,
     read_choice: Option<ReadChoice>,
     target: Option<Target>,
+    source_baseline: Option<Profile>,
+}
+pub struct RawThresholdRead {
+    pub snapshot: RawThresholds,
+    pub target: Target,
+    pub generation: u64,
+    pub read_at: std::time::SystemTime,
+    pub source: RawThresholdSource,
+    baseline: Profile,
 }
 pub struct Controller<P: Port> {
     pub port: P,
@@ -51,6 +60,7 @@ pub struct Controller<P: Port> {
     pub failure: Option<Failure>,
     pub selected_path: Option<String>,
     pub attached_target: Option<Target>,
+    raw_thresholds: Option<RawThresholdRead>,
     next_operation: u64,
     operation: Option<Pending>,
     editor_path: Option<String>,
@@ -73,6 +83,7 @@ impl<P: Port> Controller<P> {
             failure: None,
             selected_path: None,
             attached_target: None,
+            raw_thresholds: None,
             next_operation: 0,
             operation: None,
             editor_path: None,
@@ -117,12 +128,18 @@ impl<P: Port> Controller<P> {
                 .iter()
                 .find(|d| &d.path == path)
                 .map(Target::from),
-            Command::Trial { .. }
+            Command::ReadRawThresholds
+            | Command::Trial { .. }
             | Command::Begin { .. }
             | Command::Held
             | Command::Finish
             | Command::Cancel => self.attached_target.clone(),
             _ => None,
+        };
+        let source_baseline = if matches!(command, Command::ReadRawThresholds) {
+            self.editor.as_ref().map(|e| e.baseline.clone())
+        } else {
+            None
         };
         self.port.send(Request {
             ticket,
@@ -135,6 +152,7 @@ impl<P: Port> Controller<P> {
             command,
             read_choice: choice,
             target,
+            source_baseline,
         });
         Ok(())
     }
@@ -148,6 +166,7 @@ impl<P: Port> Controller<P> {
             return Err("選択したデバイスが見つかりません。一覧を更新してください。".into());
         }
         if self.selected_path.as_ref() != Some(&path) {
+            self.raw_thresholds = None;
             self.selected_path = Some(path);
             self.live = false;
             self.message="デバイスを切り替えました。編集内容は保持しています。選択したデバイスを読み込んでください。".into();
@@ -175,6 +194,9 @@ impl<P: Port> Controller<P> {
             self.live = false;
         }
         self.devices = devices;
+        if !self.live {
+            self.raw_thresholds = None;
+        }
     }
     fn changing_target(&self) -> Result<&Target, String> {
         let target = self
@@ -193,6 +215,48 @@ impl<P: Port> Controller<P> {
             );
         }
         Ok(target)
+    }
+    pub fn can_read_raw_thresholds(&self) -> bool {
+        !self.blocked()
+            && self.changing_target().is_ok_and(|target| {
+                self.editor.as_ref().is_some_and(|e| {
+                    target.identity == e.baseline.identity
+                        && supports_raw_thresholds(&e.baseline.identity, &e.baseline.firmware)
+                })
+            })
+    }
+    pub fn raw_thresholds(&self) -> Option<&RawThresholdRead> {
+        self.raw_thresholds.as_ref().filter(|read| {
+            self.live
+                && !self.close_requested
+                && self.generation == read.generation
+                && self
+                    .changing_target()
+                    .is_ok_and(|target| target == &read.target)
+                && self.editor.as_ref().is_some_and(|e| {
+                    e.baseline.identity == read.baseline.identity
+                        && e.baseline.firmware == read.baseline.firmware
+                        && e.baseline.records == read.baseline.records
+                })
+        })
+    }
+    pub fn read_raw_thresholds(&mut self) -> Result<(), String> {
+        self.available()?;
+        if !self.can_read_raw_thresholds() {
+            return Err(
+                "Read raw thresholds requires the exact fresh XRGB V1.0.48 device baseline".into(),
+            );
+        }
+        self.raw_thresholds = None;
+        self.failure = None;
+        self.dispatch(Command::ReadRawThresholds, None)?;
+        self.message = "Reading the normal-scan raw threshold snapshot.".into();
+        Ok(())
+    }
+    pub fn raw_thresholds_pending(&self) -> bool {
+        self.operation
+            .as_ref()
+            .is_some_and(|op| matches!(op.command, Command::ReadRawThresholds))
     }
     pub fn prepare_trial(&self, backup: PathBuf) -> Result<TrialApproval, String> {
         self.available()?;
@@ -222,6 +286,7 @@ impl<P: Port> Controller<P> {
                 "確認中にデバイスか編集内容が変わりました。内容を確認し直してください。".into(),
             );
         }
+        self.raw_thresholds = None;
         self.dispatch(
             Command::Trial {
                 draft: a.draft,
@@ -241,6 +306,7 @@ impl<P: Port> Controller<P> {
             return Err("選択したデバイスが一覧にありません。接続を確認してください。".into());
         }
         self.selected_path = Some(path.clone());
+        self.raw_thresholds = None;
         self.generation += 1;
         self.live = false;
         self.dispatch(Command::Read { path }, Some(choice))
@@ -270,6 +336,7 @@ impl<P: Port> Controller<P> {
                 "Calibration is experimental for exact XRGB V1.0.48 / 0483:502a only".into(),
             );
         }
+        self.raw_thresholds = None;
         self.cancel.store(false, Ordering::Release);
         self.cancel_requested = false;
         self.failure = None;
@@ -321,6 +388,7 @@ impl<P: Port> Controller<P> {
         }
     }
     pub fn close(&mut self) {
+        self.raw_thresholds = None;
         self.close_requested = true;
         if self.calibration_active() {
             self.cancel_calibration();
@@ -339,9 +407,83 @@ impl<P: Port> Controller<P> {
         };
         debug_assert_eq!(op.ticket, event.ticket);
         self.pending = None;
+        let raw_reply = matches!(event.response, Response::RawThresholds { .. });
+        let raw_command = matches!(op.command, Command::ReadRawThresholds);
+        if (raw_reply && !raw_command)
+            || (raw_command && !raw_reply && !matches!(event.response, Response::Error(_)))
+        {
+            self.raw_thresholds = None;
+            self.live = false;
+            self.message =
+                "Unexpected response for the owned raw threshold operation; read the device again."
+                    .into();
+            let mut failure = Failure::from(self.message.clone());
+            if let Response::RawThresholds { snapshot, .. } = &event.response {
+                failure.raw_reports = snapshot
+                    .raw_reports()
+                    .iter()
+                    .map(|report| report.to_vec())
+                    .collect();
+            }
+            self.failure = Some(failure);
+            if self.close_requested {
+                self.ready_close = true;
+            }
+            return;
+        }
         match event.response {
             Response::Devices(devices) => self.reconcile_devices(devices),
+            Response::RawThresholds {
+                snapshot,
+                target,
+                source,
+            } => {
+                let baseline = op.source_baseline.as_ref();
+                let valid = !self.close_requested
+                    && self.live
+                    && op.target.as_ref() == Some(&target)
+                    && self
+                        .changing_target()
+                        .is_ok_and(|current| current == &target)
+                    && baseline.is_some_and(|baseline| {
+                        baseline.identity == target.identity
+                            && snapshot.identity == baseline.identity
+                            && snapshot.firmware == baseline.firmware
+                            && supports_raw_thresholds(&snapshot.identity, &snapshot.firmware)
+                            && self.editor.as_ref().is_some_and(|e| {
+                                e.baseline.identity == baseline.identity
+                                    && e.baseline.firmware == baseline.firmware
+                                    && e.baseline.records == baseline.records
+                            })
+                    });
+                if valid {
+                    self.raw_thresholds = Some(RawThresholdRead {
+                        snapshot,
+                        target,
+                        source,
+                        generation: op.ticket.generation,
+                        read_at: std::time::SystemTime::now(),
+                        baseline: baseline.unwrap().clone(),
+                    });
+                    self.message = match source {
+                        RawThresholdSource::Device => "Read normal-scan raw threshold snapshot. Values are internal signal units, not mm.".into(),
+                        RawThresholdSource::Simulation => "DEMO: generated simulation values; no hardware threshold was read.".into(),
+                    };
+                } else {
+                    self.raw_thresholds = None;
+                    self.live = false;
+                    self.message = "Raw threshold source or reply changed; discard the snapshot and read the device again.".into();
+                    let mut failure = Failure::from(self.message.clone());
+                    failure.raw_reports = snapshot
+                        .raw_reports()
+                        .iter()
+                        .map(|report| report.to_vec())
+                        .collect();
+                    self.failure = Some(failure);
+                }
+            }
             Response::Read { profile, cancel } => {
+                self.raw_thresholds = None;
                 self.cancel = cancel;
                 self.calibration = None;
                 self.cancel_requested = false;
@@ -430,6 +572,7 @@ impl<P: Port> Controller<P> {
                 self.calibration = Some(s);
             }
             Response::Error(e) => {
+                self.raw_thresholds = None;
                 if !matches!(op.command, Command::List) {
                     self.live = false;
                 }
@@ -439,7 +582,10 @@ impl<P: Port> Controller<P> {
                 }
                 self.failure = Some(e);
             }
-            Response::Shutdown => self.ready_close = true,
+            Response::Shutdown => {
+                self.raw_thresholds = None;
+                self.ready_close = true;
+            }
         }
         if self.cancel_requested {
             self.queue_cleanup();
@@ -459,6 +605,7 @@ impl<P: Port> Controller<P> {
             self.editor = Some(Editor::new(p));
             self.editor_path = None;
         }
+        self.raw_thresholds = None;
         self.message =
             "Loaded into the offline draft. A file does not create a live device baseline.".into();
         Ok(())

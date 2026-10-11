@@ -3,7 +3,10 @@ use crate::{
     protocol::*,
 };
 use niz_core::Profile;
-use niz_device::{CalibrationPhase, CalibrationStatus, DeviceDescriptor, LiveBaseline, Session};
+use niz_device::{
+    CalibrationPhase, CalibrationStatus, DeviceDescriptor, LiveBaseline, RawThresholds, Session,
+    supports_raw_thresholds,
+};
 use std::{
     path::Path,
     sync::{
@@ -17,6 +20,7 @@ pub trait Backend {
     fn list(&mut self) -> Result<Vec<DeviceDescriptor>, Failure>;
     fn read(&mut self, path: &str) -> Result<(Profile, Arc<AtomicBool>), Failure>;
     fn baseline(&self) -> Option<&Profile>;
+    fn read_raw_thresholds(&mut self) -> Result<(RawThresholds, RawThresholdSource), Failure>;
     fn trial(&mut self, selection: Selection, backup: &Path) -> Result<Response, Failure>;
     fn begin(&mut self, backup: &Path) -> Result<CalibrationStatus, Failure>;
     fn held(&mut self) -> Result<CalibrationStatus, Failure>;
@@ -109,7 +113,8 @@ impl<B: Backend> Worker<B> {
         }
         if matches!(
             r.command,
-            Command::Trial { .. }
+            Command::ReadRawThresholds
+                | Command::Trial { .. }
                 | Command::Begin { .. }
                 | Command::Held
                 | Command::Finish
@@ -122,6 +127,55 @@ impl<B: Backend> Worker<B> {
         }
         match &r.command {
             Command::List => Ok(Response::Devices(self.backend.list()?)),
+            Command::ReadRawThresholds => {
+                if !self.valid {
+                    return Err(fail(
+                        "A fresh native baseline is required for raw threshold read",
+                    ));
+                }
+                let baseline = self
+                    .backend
+                    .baseline()
+                    .ok_or_else(|| fail("No native baseline"))?;
+                let identity = baseline.identity.clone();
+                let firmware = baseline.firmware.clone();
+                if !supports_raw_thresholds(&identity, &firmware) {
+                    return Err(fail(
+                        "Raw threshold reads require exact XRGB V1.0.48 / 0483:502a",
+                    ));
+                }
+                let target = self
+                    .attached_target
+                    .clone()
+                    .ok_or_else(|| fail("No attached raw threshold target"))?;
+                if target.identity != identity {
+                    return Err(fail(
+                        "Raw threshold target differs from the native baseline",
+                    ));
+                }
+                let (snapshot, source) = match self.backend.read_raw_thresholds() {
+                    Ok(read) => read,
+                    Err(error) => {
+                        self.valid = false;
+                        return Err(error);
+                    }
+                };
+                if snapshot.identity != identity || snapshot.firmware != firmware {
+                    self.valid = false;
+                    let mut failure = fail("Raw threshold reply differs from the owned baseline");
+                    failure.raw_reports = snapshot
+                        .raw_reports()
+                        .iter()
+                        .map(|report| report.to_vec())
+                        .collect();
+                    return Err(failure);
+                }
+                Ok(Response::RawThresholds {
+                    snapshot,
+                    target,
+                    source,
+                })
+            }
             Command::Trial {
                 draft,
                 selection,
@@ -201,6 +255,20 @@ impl Backend for NativeBackend {
     }
     fn baseline(&self) -> Option<&Profile> {
         self.baseline.as_ref().map(LiveBaseline::profile)
+    }
+    fn read_raw_thresholds(&mut self) -> Result<(RawThresholds, RawThresholdSource), Failure> {
+        // Keep the same owned Session/lock; a failed transaction drops the poisoned handle.
+        if self.baseline.is_none() {
+            return Err(Failure::from("No current native baseline".to_string()));
+        }
+        match self.session()?.read_raw_thresholds() {
+            Ok(snapshot) => Ok((snapshot, RawThresholdSource::Device)),
+            Err(error) => {
+                self.baseline = None;
+                self.session = None;
+                Err(error.into())
+            }
+        }
     }
     fn trial(&mut self, s: Selection, backup: &Path) -> Result<Response, Failure> {
         let b = self
@@ -312,6 +380,31 @@ impl Backend for DemoBackend {
     }
     fn baseline(&self) -> Option<&Profile> {
         self.profile.as_ref()
+    }
+    fn read_raw_thresholds(&mut self) -> Result<(RawThresholds, RawThresholdSource), Failure> {
+        let profile = self
+            .profile
+            .as_ref()
+            .ok_or_else(|| Failure::from("Read the demo first".to_string()))?;
+        // Deliberately generated flat-index values, never a captured hardware analog table.
+        let reports = (0..11)
+            .map(|row| {
+                let mut report = [0; 64];
+                report[1] = 0xdc;
+                report[2] = row + 1;
+                report[3] = 1;
+                for column in 0..6 {
+                    report[4 + column] = row * 6 + column as u8;
+                }
+                report
+            })
+            .collect();
+        let snapshot = RawThresholds::from_reports(
+            profile.identity.clone(),
+            profile.firmware.clone(),
+            reports,
+        )?;
+        Ok((snapshot, RawThresholdSource::Simulation))
     }
     fn trial(&mut self, s: Selection, backup: &Path) -> Result<Response, Failure> {
         let p = self

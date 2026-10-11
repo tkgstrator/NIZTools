@@ -1,0 +1,19 @@
+   Compiling niz-gui v0.1.0 (/Users/devonly/Developer/personal/NIZ/crates/niz-gui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.64s
+     Running unittests src/lib.rs (target/debug/deps/niz_gui-ef2579533dad9ba6)
+
+running 1 test
+
+thread 'app::tests::hover_and_press_keep_choice_glyphs_controls_and_neighbors_fixed_at_retina_scale' (1819883) panicked at crates/niz-gui/src/app_tests.rs:175:9:
+Light [960.0, 820.0] hover="2つの位置を交換" frame=0: "2つの位置を交換" moved from PaintedGeometry { text: [[123.0 163.0] - [228.9 179.0]], glyphs: [[123.5 165.0] - [229.0 178.5]], control: Some([[114.0 158.0] - [237.9 184.0]]) } to PaintedGeometry { text: [[124.0 163.0] - [229.9 179.0]], glyphs: [[124.5 165.0] - [230.0 178.5]], control: Some([[114.0 158.0] - [239.9 184.0]]) }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test app::tests::hover_and_press_keep_choice_glyphs_controls_and_neighbors_fixed_at_retina_scale ... FAILED
+
+failures:
+
+failures:
+    app::tests::hover_and_press_keep_choice_glyphs_controls_and_neighbors_fixed_at_retina_scale
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 37 filtered out; finished in 0.47s
+
+error: test failed, to rerun pass `-p niz-gui --lib`

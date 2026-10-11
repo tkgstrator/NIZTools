@@ -1,0 +1,15 @@
+{
+  "result": "pass",
+  "rows": 11,
+  "bytes_per_report": 64,
+  "values": 66,
+  "A_31": 23,
+  "S_32": 25,
+  "minimum": 16,
+  "maximum": 30,
+  "physical_mapping": "independent_exact_image_csv",
+  "captures_byte_identical": true,
+  "mapping_csv_sha256": "8cc8fd53a304b444cc0e4dd01f1202cbca51fc988d65bca3c45d508c52091c39",
+  "original_mapping_csv_sha256": "699d6aa67d520fb1db406128b02039b5ce46e69aac6c2ac43008cd81bd0361ba",
+  "mapping_line_endings_normalized_to_LF": true
+}

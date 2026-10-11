@@ -1,0 +1,19 @@
+   Compiling niz-gui v0.1.0 (/Users/devonly/Developer/personal/NIZ/crates/niz-gui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.90s
+     Running unittests src/lib.rs (target/debug/deps/niz_gui-ef2579533dad9ba6)
+
+running 1 test
+
+thread 'app::tests::raw_threshold_reader_accepts_focused_enter_and_space_as_explicit_actions' (1980991) panicked at crates/niz-gui/src/app_tests.rs:1373:9:
+focused Enter must request the read
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test app::tests::raw_threshold_reader_accepts_focused_enter_and_space_as_explicit_actions ... FAILED
+
+failures:
+
+failures:
+    app::tests::raw_threshold_reader_accepts_focused_enter_and_space_as_explicit_actions
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 48 filtered out; finished in 0.18s
+
+error: test failed, to rerun pass `-p niz-gui --lib`

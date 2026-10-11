@@ -143,6 +143,20 @@ fn read_preserves_leading_zero_and_frames_65_bytes() {
     assert_eq!(&sent[1][1..], &command(0xf2));
 }
 #[test]
+fn active_calibration_rejects_raw_getter_without_any_f9_or_dc() {
+    let p = live_fixture();
+    let (mut session, state) = session(calibration_replies(&p));
+    let baseline = session.read_baseline().unwrap();
+    let directory = tempfile::tempdir().unwrap();
+    session
+        .begin_calibration(&baseline, directory.path())
+        .unwrap();
+    let sent_before = state.borrow().sent.clone();
+    let error = session.read_raw_thresholds().unwrap_err();
+    assert!(error.message.contains("calibration"));
+    assert_eq!(state.borrow().sent, sent_before);
+}
+#[test]
 fn short_read_poisoned_and_raw_retained() {
     let (mut s, state) = session(vec![vec![0, 0xf9, 1]]);
     let e = s.version().unwrap_err();

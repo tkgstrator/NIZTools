@@ -1,0 +1,19 @@
+   Compiling niz-gui v0.1.0 (/Users/devonly/Developer/personal/NIZ/crates/niz-gui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.82s
+     Running unittests src/lib.rs (target/debug/deps/niz_gui-ef2579533dad9ba6)
+
+running 1 test
+
+thread 'app::tests::raw_threshold_accesskit_click_targets_the_real_reader_and_respects_guards' (1987568) panicked at crates/niz-gui/src/app_tests.rs:1438:13:
+AccessKit Click must request the read
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test app::tests::raw_threshold_accesskit_click_targets_the_real_reader_and_respects_guards ... FAILED
+
+failures:
+
+failures:
+    app::tests::raw_threshold_accesskit_click_targets_the_real_reader_and_respects_guards
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 49 filtered out; finished in 0.17s
+
+error: test failed, to rerun pass `-p niz-gui --lib`

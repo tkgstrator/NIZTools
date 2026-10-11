@@ -1,0 +1,31 @@
+   Compiling niz-gui v0.1.0 (/Users/devonly/Developer/personal/NIZ/crates/niz-gui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.86s
+     Running unittests src/lib.rs (target/debug/deps/niz_gui-ef2579533dad9ba6)
+
+running 1 test
+theme=Light default_state=0 wheel_scroll_range=0.00
+theme=Light default_state=1 wheel_scroll_range=0.00
+theme=Light default_state=2 wheel_scroll_range=0.00
+theme=Light default_state=3 wheel_scroll_range=0.00
+theme=Light default_state=4 wheel_scroll_range=0.00
+theme=Light default_state=5 wheel_scroll_range=0.00
+theme=Light default_state=6 wheel_scroll_range=0.00
+theme=Light default_state=7 wheel_scroll_range=0.00
+theme=Light default_state=8 wheel_scroll_range=0.00
+theme=Light default_state=9 wheel_scroll_range=0.00
+theme=Light default_state=10 wheel_scroll_range=0.00
+theme=Dark default_state=0 wheel_scroll_range=0.00
+theme=Dark default_state=1 wheel_scroll_range=0.00
+theme=Dark default_state=2 wheel_scroll_range=0.00
+theme=Dark default_state=3 wheel_scroll_range=0.00
+theme=Dark default_state=4 wheel_scroll_range=0.00
+theme=Dark default_state=5 wheel_scroll_range=0.00
+theme=Dark default_state=6 wheel_scroll_range=0.00
+theme=Dark default_state=7 wheel_scroll_range=0.00
+theme=Dark default_state=8 wheel_scroll_range=0.00
+theme=Dark default_state=9 wheel_scroll_range=0.00
+theme=Dark default_state=10 wheel_scroll_range=0.00
+test app::tests::default_collapsed_views_have_no_wheel_scroll_range ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 36 filtered out; finished in 4.21s
+

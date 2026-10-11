@@ -1,0 +1,9 @@
+{
+  "crates/niz-gui/src/app.rs": "bffcefe9f488ca920f86737caed1bb85fd26a146a1cac6fa49a5c80db6d1e42a",
+  "crates/niz-gui/src/keyboard.rs": "18deca00070f919d8f75e2729cf45429b784e9fd6dd8937b32f191ccfd80ca2b",
+  "crates/niz-gui/src/app_tests.rs": "0b038b8c19cb80ce8577e71cde65b7e1baf32c17852b49f5e6bc0498e4cdc364",
+  "crates/niz-gui/src/theme.rs": "fc7016316f63c689877bff4388eea79db7eaadf9f7912b62f0bed228fd05b8c9",
+  "crates/niz-gui/src/input_test.rs": "5b0f21003a492214df2c631fc793b28a6825e767053ca532e35e0165833fd4b5",
+  "crates/niz-gui/src/lib.rs": "e8f574c5ab061c2da2189acf38225e0d9eee07b69bae809d023dcd06e5fb02c3",
+  "target/debug/niz-gui": "18284b3a99f108f631ebdd0d8a05aee878aa449eda7e756c25330371ba11e442"
+}

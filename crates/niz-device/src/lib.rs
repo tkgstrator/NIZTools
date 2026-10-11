@@ -5,9 +5,11 @@ pub use calibration::{
     CalibrationPhase, CalibrationResult, CalibrationStatus, PacketTrace, TraceDirection,
     UnlockOutcome,
 };
+mod raw_thresholds;
 mod session;
 mod transport;
 pub use backup::{load_profile, save_backup};
+pub use raw_thresholds::{RawThresholds, supports_raw_thresholds};
 pub use session::{ApplyOutcome, ApplyResult, LiveBaseline, Session};
 pub use transport::{DeviceDescriptor, list_devices};
 #[derive(Debug)]
@@ -48,5 +50,7 @@ impl From<std::io::Error> for Error {
 pub type Result<T> = std::result::Result<T, Error>;
 #[cfg(test)]
 mod event_tests;
+#[cfg(test)]
+mod raw_threshold_tests;
 #[cfg(test)]
 mod tests;
