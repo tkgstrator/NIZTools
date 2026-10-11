@@ -1,0 +1,14 @@
+{
+  "official_page": "https://www.nizkeyboard.com/pages/firmware-upgrade",
+  "archive_url": "https://drive.usercontent.google.com/download?id=1HlD3fvHx5obZDIfgJ2PJogi16xE0I7Bo&export=download&confirm=t",
+  "archive_size": 5417486,
+  "archive_sha256": "87d1f2ac8f77c99244fa8cffc23c7ef9987aa8b1f4a0a8c41c4e1c8d53dc63ce",
+  "KBDLL_size": 17408,
+  "KBDLL_sha256": "4a73d74f378b5d6c0b731257eb6432482e8184efc27e7f611161db8a6e12fe32",
+  "prior_member_metadata": {
+    "size": 17408,
+    "sha256": "4a73d74f378b5d6c0b731257eb6432482e8184efc27e7f611161db8a6e12fe32"
+  },
+  "method": "Archive and member read in memory only; tar extraction to stdout; no vendor executable launched.",
+  "member_matches_previous_static_analysis": true
+}
