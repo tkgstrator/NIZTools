@@ -1,5 +1,7 @@
 # macOS UI and raw-threshold integration validation — 2026-10-11
 
+Historical checkpoint: the later [threshold UI follow-up](2026-10-11-threshold-ui-followup.md) records the current 294-test sources and rebuilt distribution. Counts and source hashes below retain this earlier checkpoint.
+
 Verified native host: `devonlys-MacBook-Pro.local`, Apple Silicon macOS 26.4.
 Workspace: `/Users/devonly/Developer/personal/NIZ`.
 Base commit: `f78d1617405e91387f03515df469d32c9e6ca5d4`.

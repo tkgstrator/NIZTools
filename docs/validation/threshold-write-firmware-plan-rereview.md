@@ -1,0 +1,17 @@
+# Focused proposal rereview
+
+2026-10-11, independent read-only rereview. File: `/Users/devonly/Developer/personal/NIZ/docs/reverse-engineering/2026-10-11-threshold-write-feasibility.md`. Revised SHA-256: `8a477c2fb9f8cd0404f6fef0703314023af773ca2927ef8b3b033d3dfad1e5c5`.
+
+The initial three P2 findings in `proposal-review.md` are resolved as **scope/specification requirements**. No new material specification finding remains in the revised eight-step next-stage proposal. This is appropriate for a user decision about entering firmware feasibility/design research. It does not confirm firmware development feasibility, approve implementation or execution, or qualify flashing/recovery.
+
+| Initial finding | Revised evidence | Status |
+|---|---|---|
+| Offline power-loss/return-to-original verification was ambiguous; existing erase/program cannot supply preservation during failure | Step5, line31 requires complete old-or-new table recovery, preservation of65 neighbors, verified free storage/markers/recovery, and no persistent write if those cannot be established. It separates original code restoration from original calibration restoration. Step6, line32 separates offline fault simulation from actual flash/restart/power-loss/recovery tests. Line36 retains bootloader and restoration gates before real firmware writing. | Resolved in specification; storage/hardware proof remains unperformed |
+| T-only preservation plus whole R regeneration could change unselected keys; representation/ranges were underspecified | Step3, line29 states internal units, FF sentinel, ordinary T16..254, startup normalization, mode-specific R ranges9..127/9..152/11..177 and rounding. Step4, line30 preserves both T/current R for other65 cells, excludes whole-R regeneration, distinguishes temporary scale from restart values, and preserves B/mode/keymaps/lighting. | Resolved in specification; no new setter implementation exists |
+| Matching image/decoder did not provide a verified rebuild/patch/recovery basis | Step1, line27 makes MCU/memory/unseen bootloader/recovery and exact-rebuild versus limited-patch selection the first gate. It rejects package re-encoding as proof of real update/recovery. Line36 independently gates actual writing on original-code recovery, bootloader behavior and modified-image evidence. | Resolved as an initial feasibility gate; build/patch/recovery feasibility remains unproved |
+
+D5's retained lines15–17 remain accurate: reset all66 custom T cells to FF; regenerate normal-scanner R from the current valid global mode; do not write saved keymaps, B, common reference or global mode; no complete factory reset, A-fix guarantee or actual reset/persistence claim. Step8, line34 leaves D5 as a qualification candidate requiring complete before/after comparisons and completion/persistence evidence.
+
+Step2 explicitly preserves physical identity independent of mutable output assignments and checks all66 positions on modified firmware. Step7 defines one-shot apply, operation identification/uncertain outcome reconciliation and no blind retry; these are suitable requirements for the eventual API design. The exact opcode, transaction/storage design and implementation tests remain future work.
+
+Only the revised proposal and this reviewer's earlier firmware evidence were consulted. No other new reviewer's feedback was read. No repository/Git modification, product or firmware execution, HID/calibration/reset/update/flash operation occurred. The original review remains retained separately.

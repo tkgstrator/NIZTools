@@ -1,0 +1,31 @@
+   Compiling niz-gui v0.1.0 (/Users/devonly/Developer/personal/NIZ/crates/niz-gui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.14s
+     Running unittests src/lib.rs (target/debug/deps/niz_gui-ef2579533dad9ba6)
+
+running 11 tests
+test app::tests::raw_threshold_pending_and_error_show_no_old_or_partial_values ... ok
+theme=Light scale=1 state=closed glyphs=[[48.0 264.0] - [156.0 278.0]] arrow=[[33.0 268.0] - [39.0 274.0]] center_delta_pixels=0.00
+theme=Light scale=1 state=open glyphs=[[48.0 264.0] - [156.0 278.0]] arrow=[[33.0 268.0] - [39.0 274.0]] center_delta_pixels=0.00
+test app::tests::raw_threshold_read_is_manual_and_demo_values_are_explicitly_simulated ... ok
+theme=Light scale=1 state=closed again glyphs=[[48.0 264.0] - [156.0 278.0]] arrow=[[33.0 268.0] - [39.0 274.0]] center_delta_pixels=0.00
+test app::tests::raw_threshold_reader_accepts_focused_enter_and_space_as_explicit_actions ... ok
+test app::tests::raw_threshold_unfocused_enter_theme_and_key_navigation_never_refresh_the_snapshot ... ok
+theme=Light scale=2 state=closed glyphs=[[48.0 264.0] - [155.0 277.5]] arrow=[[33.0 267.8] - [39.0 273.8]] center_delta_pixels=0.00
+test app::tests::raw_threshold_details_are_optional_and_preserve_the_manual_snapshot ... ok
+theme=Light scale=2 state=open glyphs=[[48.0 264.0] - [155.0 277.5]] arrow=[[33.0 267.8] - [39.0 273.8]] center_delta_pixels=0.00
+theme=Light scale=2 state=closed again glyphs=[[48.0 264.0] - [155.0 277.5]] arrow=[[33.0 267.8] - [39.0 273.8]] center_delta_pixels=0.00
+test app::tests::raw_threshold_read_button_hover_keeps_geometry_fixed_in_both_themes ... ok
+test app::tests::raw_threshold_accesskit_click_targets_the_real_reader_and_respects_guards ... ok
+theme=Dark scale=1 state=closed glyphs=[[48.0 264.0] - [156.0 278.0]] arrow=[[33.0 268.0] - [39.0 274.0]] center_delta_pixels=0.00
+test app::tests::raw_threshold_snapshot_fits_default_and_remains_reachable_at_minimum ... ok
+theme=Dark scale=1 state=open glyphs=[[48.0 264.0] - [156.0 278.0]] arrow=[[33.0 268.0] - [39.0 274.0]] center_delta_pixels=0.00
+theme=Dark scale=1 state=closed again glyphs=[[48.0 264.0] - [156.0 278.0]] arrow=[[33.0 268.0] - [39.0 274.0]] center_delta_pixels=0.00
+test app::tests::raw_threshold_read_button_respects_source_modal_popup_and_close_guards ... ok
+theme=Dark scale=2 state=closed glyphs=[[48.0 264.0] - [155.0 277.5]] arrow=[[33.0 267.8] - [39.0 273.8]] center_delta_pixels=0.00
+theme=Dark scale=2 state=open glyphs=[[48.0 264.0] - [155.0 277.5]] arrow=[[33.0 267.8] - [39.0 273.8]] center_delta_pixels=0.00
+theme=Dark scale=2 state=closed again glyphs=[[48.0 264.0] - [155.0 277.5]] arrow=[[33.0 267.8] - [39.0 273.8]] center_delta_pixels=0.00
+test app::tests::raw_threshold_disclosure_centers_arrow_on_visible_glyphs ... ok
+test app::tests::raw_threshold_disabled_reader_rejects_focused_keyboard_activation ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 41 filtered out; finished in 1.64s
+

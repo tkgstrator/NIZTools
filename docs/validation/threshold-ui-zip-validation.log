@@ -1,0 +1,6 @@
+{
+  "zip_integrity": "pass",
+  "signed_app_executable_sha256": "77c28fdb2f860926170ef952dc272bc368a47f1e1969cf45b91819496161ed14",
+  "zip_executable_sha256": "77c28fdb2f860926170ef952dc272bc368a47f1e1969cf45b91819496161ed14",
+  "matches": true
+}

@@ -1236,24 +1236,165 @@ fn apply_confirmation_execution_and_cancel_share_a_readable_danger_row() {
 }
 
 #[test]
+fn raw_threshold_disclosure_centers_arrow_on_visible_glyphs() {
+    let title = "しきい値について";
+    let mut failures = Vec::new();
+    for theme in [egui::Theme::Light, egui::Theme::Dark] {
+        for scale in [1., 2.] {
+            let mut h = Harness::loaded([960., 820.]);
+            h.native_pixels_per_point = scale;
+            h.ctx.set_theme(theme);
+            h.click("入力しきい値");
+            for state in ["closed", "open", "closed again"] {
+                if state != "closed" {
+                    h.click(title);
+                }
+                h.render(vec![egui::Event::PointerGone]);
+                for _ in 0..24 {
+                    h.render(vec![]);
+                }
+                let (index, text) = h
+                    .output
+                    .shapes
+                    .iter()
+                    .enumerate()
+                    .find_map(|(index, shape)| match &shape.shape {
+                        egui::Shape::Text(text) if text.galley.text() == title => {
+                            Some((index, text))
+                        }
+                        _ => None,
+                    })
+                    .expect("the real disclosure title must be rendered");
+                let glyphs = h
+                    .ctx
+                    .tessellate(vec![h.output.shapes[index].clone()], scale)
+                    .iter()
+                    .fold(egui::Rect::NOTHING, |bounds, primitive| {
+                        if let egui::epaint::Primitive::Mesh(mesh) = &primitive.primitive {
+                            bounds.union(mesh.calc_bounds())
+                        } else {
+                            bounds
+                        }
+                    });
+                assert!(h.output.shapes[index].clip_rect.contains_rect(glyphs));
+                let line = text.galley.rect.translate(text.pos.to_vec2());
+                let arrow = h.output.shapes[..index]
+                    .iter()
+                    .rev()
+                    .find_map(|shape| {
+                        let egui::Shape::Path(path) = &shape.shape else {
+                            return None;
+                        };
+                        let bounds = egui::Rect::from_points(&path.points);
+                        (path.closed
+                            && path.points.len() == 3
+                            && path.fill.a() != 0
+                            && bounds.right() < glyphs.left()
+                            && glyphs.left() - bounds.right() < 40.
+                            && (bounds.center().y - line.center().y).abs() < 20.
+                            && shape.clip_rect.contains_rect(bounds))
+                        .then_some(bounds)
+                    })
+                    .expect("the real disclosure triangle must be rendered beside its title");
+                let delta_pixels = (glyphs.center().y - arrow.center().y).abs() * scale;
+                println!(
+                    "theme={theme:?} scale={scale} state={state} glyphs={glyphs:?} arrow={arrow:?} center_delta_pixels={delta_pixels:.2}"
+                );
+                if delta_pixels > 0.5 {
+                    failures.push(format!(
+                        "{theme:?} scale={scale} {state}: {delta_pixels:.2}px"
+                    ));
+                }
+                assert_eq!(
+                    h.visible("通常スキャンの内部値。押し込み量(mm)ではありません。"),
+                    state == "open"
+                );
+                assert!(h.app.controller.pending.is_none());
+                assert!(h.app.controller.raw_thresholds().is_none());
+                assert!(!h.app.controller.editor.as_ref().unwrap().dirty());
+            }
+        }
+    }
+    assert!(
+        failures.is_empty(),
+        "disclosure arrow and visible glyphs are vertically misaligned: {failures:?}"
+    );
+}
+
+#[test]
+fn raw_threshold_details_are_optional_and_preserve_the_manual_snapshot() {
+    for theme in [egui::Theme::Light, egui::Theme::Dark] {
+        let mut h = Harness::loaded([960., 820.]);
+        h.ctx.set_theme(theme);
+        h.click("入力しきい値");
+        let meaning = "通常スキャンの内部値。押し込み量(mm)ではありません。";
+        assert!(
+            !h.visible(meaning),
+            "the internal-value explanation must stay in collapsed details"
+        );
+        assert!(h.visible("しきい値: 未取得"));
+        assert!(h.visible(
+            "キーを離して読み込んでください。入力が一時停止し、補正が初期値に戻る場合があります。"
+        ));
+        let generation = h.app.controller.generation;
+        h.click("しきい値について");
+        for _ in 0..8 {
+            h.render(vec![]);
+        }
+        assert!(h.visible(meaning));
+        assert!(h.visible("読み取り時点の値です。再読み込みするまで更新されません。"));
+        assert!(h.app.controller.raw_thresholds().is_none());
+        assert!(h.app.controller.pending.is_none());
+        h.click("しきい値について");
+        for _ in 0..8 {
+            h.render(vec![]);
+        }
+        assert!(!h.visible(meaning));
+        h.click("しきい値を読み込む");
+        h.settle();
+        let read_at = h.app.controller.raw_thresholds().unwrap().read_at;
+        assert!(h.visible("しきい値: 13"));
+        assert!(h.visible("DEMO値"));
+        h.click("しきい値について");
+        for _ in 0..8 {
+            h.render(vec![]);
+        }
+        assert!(h.visible(meaning));
+        assert!(h.visible("選択中のキーの内部値: 13 (0x0D)"));
+        h.click("S\n#32");
+        assert!(h.visible("しきい値: 14"));
+        assert!(h.visible("選択中のキーの内部値: 14 (0x0E)"));
+        h.click("しきい値について");
+        for _ in 0..8 {
+            h.render(vec![]);
+        }
+        assert!(!h.visible(meaning));
+        assert!(h.visible("しきい値: 14"));
+        assert_eq!(h.app.controller.raw_thresholds().unwrap().read_at, read_at);
+        assert_eq!(h.app.controller.generation, generation);
+        assert!(h.app.controller.pending.is_none());
+        assert!(!h.app.controller.editor.as_ref().unwrap().dirty());
+    }
+}
+
+#[test]
 fn raw_threshold_read_is_manual_and_demo_values_are_explicitly_simulated() {
     let mut h = Harness::loaded([960., 820.]);
     h.click("入力しきい値");
-    assert!(h.visible("読み取り時の生しきい値: 未取得"));
+    assert!(h.visible("しきい値: 未取得"));
     assert!(h.visible("しきい値を読み込む"));
-    assert!(h.visible("キーごとのしきい値変更は未対応です"));
+    assert!(h.visible("しきい値の変更は未対応です"));
     h.click("S\n#32");
-    assert!(h.visible("読み取り時の生しきい値: 未取得"));
+    assert!(h.visible("しきい値: 未取得"));
     h.click("しきい値を読み込む");
     h.settle();
-    assert!(h.visible("読み取り時の生しきい値: 14 (0x0E)"));
-    assert!(h.visible("通常スキャンの内部値。押し込み量(mm)ではありません。"));
-    assert!(h.visible("DEMO: シミュレーション値です。実機から読み取った値ではありません。"));
+    assert!(h.visible("しきい値: 14"));
+    assert!(h.visible("DEMO値"));
     h.click("A\n#31");
-    assert!(h.visible("読み取り時の生しきい値: 13 (0x0D)"));
+    assert!(h.visible("しきい値: 13"));
     h.click("=\n#13");
-    assert!(h.visible("読み取り時の生しきい値: 60 (0x3C)"));
-    assert!(h.visible("キーごとのしきい値変更は未対応です"));
+    assert!(h.visible("しきい値: 60"));
+    assert!(h.visible("しきい値の変更は未対応です"));
     h.click("生しきい値の読み取り記録");
     for _ in 0..8 {
         h.render(vec![]);
@@ -1277,21 +1418,21 @@ fn raw_threshold_pending_and_error_show_no_old_or_partial_values() {
     h.click("入力しきい値");
     h.click("しきい値を読み込む");
     h.settle();
-    assert!(h.visible("読み取り時の生しきい値: 13 (0x0D)"));
+    assert!(h.visible("しきい値: 13"));
     h.app.controller.read_raw_thresholds().unwrap();
     // Render the owned pending state before consuming the asynchronous demo reply.
     h.output = h
         .ctx
         .run_ui(h.input(vec![]), |ui| h.app.ui(ui, &mut h.frame));
     h.output.textures_delta.clear();
-    assert!(h.visible("読み取り時の生しきい値: 読み込み中…"));
-    assert!(!h.visible("読み取り時の生しきい値: 13 (0x0D)"));
+    assert!(h.visible("しきい値: 読み込み中…"));
+    assert!(!h.visible("しきい値: 13"));
     h.app.controller.process(crate::protocol::Event {
         ticket: h.app.controller.pending.unwrap(),
         response: crate::protocol::Response::Error("raw snapshot test error".to_string().into()),
     });
     h.render(vec![]);
-    assert!(h.visible("読み取り時の生しきい値: 未取得"));
+    assert!(h.visible("しきい値: 未取得"));
     assert!(h.app.controller.raw_thresholds().is_none());
     assert!(!h.app.controller.live);
     assert!(
@@ -1378,7 +1519,7 @@ fn raw_threshold_reader_accepts_focused_enter_and_space_as_explicit_actions() {
         h.render(vec![key_event(key, false)]);
         h.settle();
         assert!(h.app.controller.raw_thresholds().unwrap().read_at > previous);
-        assert!(h.visible("読み取り時の生しきい値: 13 (0x0D)"));
+        assert!(h.visible("しきい値: 13"));
         assert!(h.app.controller.live);
         assert!(!h.app.controller.editor.as_ref().unwrap().dirty());
     }
@@ -1473,7 +1614,7 @@ fn raw_threshold_accesskit_click_targets_the_real_reader_and_respects_guards() {
                 "AccessKit Click must request the read"
             );
             h.settle();
-            assert!(h.visible("読み取り時の生しきい値: 13 (0x0D)"));
+            assert!(h.visible("しきい値: 13"));
             assert!(!h.app.controller.editor.as_ref().unwrap().dirty());
         } else {
             assert!(!h.app.controller.raw_thresholds_pending(), "case {case}");
@@ -1552,7 +1693,7 @@ fn raw_threshold_snapshot_fits_default_and_remains_reachable_at_minimum() {
             let mut positions = std::collections::BTreeSet::new();
             let before = h.rect("NIZ Utility");
             assert!(h.visible("しきい値を読み込む"));
-            assert!(h.visible("読み取り時の生しきい値: 13 (0x0D)"));
+            assert!(h.visible("しきい値: 13"));
             for _ in 0..8 {
                 for (text, rect, clip) in h.texts() {
                     if clip.contains_rect(rect)
@@ -1586,11 +1727,9 @@ fn per_key_threshold_capability_is_visible_without_legacy_write_controls() {
             h.app.view = View::Calibration;
             h.app.controller.live = live;
             h.render(vec![]);
-            assert!(h.visible("調整するキー: #31 · A"));
-            assert!(h.visible("キーごとのしきい値変更は未対応です"));
-            assert!(h.visible(
-                "この機種の個別調整にはまだ対応していません。キーの選択だけでは設定を変更しません。"
-            ));
+            assert!(h.visible("選択中のキー: #31 · A"));
+            assert!(h.visible("しきい値の変更は未対応です"));
+            assert!(h.visible("しきい値について"));
             assert!(h.visible("入力しきい値"));
             for _ in 0..8 {
                 h.scroll_down();
@@ -1721,7 +1860,7 @@ fn per_key_threshold_selection_never_edits_or_dispatches_for_any_physical_key() 
             for _ in 0..2 {
                 h.click(&label);
                 assert_eq!(h.app.calibration_position, slot);
-                assert!(h.visible(&format!("調整するキー: #{:02} · {legend}", slot + 1)));
+                assert!(h.visible(&format!("選択中のキー: #{:02} · {legend}", slot + 1)));
                 h.render(vec![key_event(egui::Key::Enter, true)]);
                 h.render(vec![key_event(egui::Key::Enter, false)]);
                 assert!(h.app.controller.pending.is_none());

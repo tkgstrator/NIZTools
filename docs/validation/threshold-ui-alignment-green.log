@@ -1,0 +1,63 @@
+   Compiling niz-gui v0.1.0 (/Users/devonly/Developer/personal/NIZ/crates/niz-gui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.92s
+     Running unittests src/lib.rs (target/debug/deps/niz_gui-ef2579533dad9ba6)
+
+running 1 test
+theme=Light scale=1 state=closed glyphs=[[48.0 264.0] - [156.0 278.0]] arrow=[[33.0 268.0] - [39.0 274.0]] center_delta_pixels=0.00
+theme=Light scale=1 state=open glyphs=[[48.0 264.0] - [156.0 278.0]] arrow=[[33.0 268.0] - [39.0 274.0]] center_delta_pixels=0.00
+theme=Light scale=1 state=closed again glyphs=[[48.0 264.0] - [156.0 278.0]] arrow=[[33.0 268.0] - [39.0 274.0]] center_delta_pixels=0.00
+theme=Light scale=2 state=closed glyphs=[[48.0 264.0] - [155.0 277.5]] arrow=[[33.0 267.8] - [39.0 273.8]] center_delta_pixels=0.00
+theme=Light scale=2 state=open glyphs=[[48.0 264.0] - [155.0 277.5]] arrow=[[33.0 267.8] - [39.0 273.8]] center_delta_pixels=0.00
+theme=Light scale=2 state=closed again glyphs=[[48.0 264.0] - [155.0 277.5]] arrow=[[33.0 267.8] - [39.0 273.8]] center_delta_pixels=0.00
+theme=Dark scale=1 state=closed glyphs=[[48.0 264.0] - [156.0 278.0]] arrow=[[33.0 268.0] - [39.0 274.0]] center_delta_pixels=0.00
+theme=Dark scale=1 state=open glyphs=[[48.0 264.0] - [156.0 278.0]] arrow=[[33.0 268.0] - [39.0 274.0]] center_delta_pixels=0.00
+theme=Dark scale=1 state=closed again glyphs=[[48.0 264.0] - [156.0 278.0]] arrow=[[33.0 268.0] - [39.0 274.0]] center_delta_pixels=0.00
+theme=Dark scale=2 state=closed glyphs=[[48.0 264.0] - [155.0 277.5]] arrow=[[33.0 267.8] - [39.0 273.8]] center_delta_pixels=0.00
+theme=Dark scale=2 state=open glyphs=[[48.0 264.0] - [155.0 277.5]] arrow=[[33.0 267.8] - [39.0 273.8]] center_delta_pixels=0.00
+theme=Dark scale=2 state=closed again glyphs=[[48.0 264.0] - [155.0 277.5]] arrow=[[33.0 267.8] - [39.0 273.8]] center_delta_pixels=0.00
+test app::tests::raw_threshold_disclosure_centers_arrow_on_visible_glyphs ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 51 filtered out; finished in 1.40s
+
+     Running unittests src/main.rs (target/debug/deps/niz_gui-8495035df892f35b)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/controller.rs (target/debug/deps/controller-70150c65af80cfbf)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 27 filtered out; finished in 0.00s
+
+     Running tests/editor.rs (target/debug/deps/editor-04335e1ae079f10f)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 12 filtered out; finished in 0.00s
+
+     Running tests/keyboard.rs (target/debug/deps/keyboard-75a3cf42ff95ae6b)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 17 filtered out; finished in 0.00s
+
+     Running tests/raw_thresholds_controller.rs (target/debug/deps/raw_thresholds_controller-d1ee3d9e42088409)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.00s
+
+     Running tests/raw_thresholds_worker.rs (target/debug/deps/raw_thresholds_worker-59b62a4cc3b0f373)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+
+     Running tests/worker.rs (target/debug/deps/worker-c530a023bd879e32)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 9 filtered out; finished in 0.00s
+

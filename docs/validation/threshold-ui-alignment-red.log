@@ -1,0 +1,31 @@
+   Compiling niz-gui v0.1.0 (/Users/devonly/Developer/personal/NIZ/crates/niz-gui)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.92s
+     Running unittests src/lib.rs (target/debug/deps/niz_gui-ef2579533dad9ba6)
+
+running 1 test
+theme=Light scale=1 state=closed glyphs=[[48.0 264.0] - [156.0 278.0]] arrow=[[33.0 267.0] - [39.0 273.0]] center_delta_pixels=1.00
+theme=Light scale=1 state=open glyphs=[[48.0 264.0] - [156.0 278.0]] arrow=[[33.0 267.0] - [39.0 273.0]] center_delta_pixels=1.00
+theme=Light scale=1 state=closed again glyphs=[[48.0 264.0] - [156.0 278.0]] arrow=[[33.0 267.0] - [39.0 273.0]] center_delta_pixels=1.00
+theme=Light scale=2 state=closed glyphs=[[48.0 264.0] - [155.0 277.5]] arrow=[[33.0 267.0] - [39.0 273.0]] center_delta_pixels=1.50
+theme=Light scale=2 state=open glyphs=[[48.0 264.0] - [155.0 277.5]] arrow=[[33.0 267.0] - [39.0 273.0]] center_delta_pixels=1.50
+theme=Light scale=2 state=closed again glyphs=[[48.0 264.0] - [155.0 277.5]] arrow=[[33.0 267.0] - [39.0 273.0]] center_delta_pixels=1.50
+theme=Dark scale=1 state=closed glyphs=[[48.0 264.0] - [156.0 278.0]] arrow=[[33.0 267.0] - [39.0 273.0]] center_delta_pixels=1.00
+theme=Dark scale=1 state=open glyphs=[[48.0 264.0] - [156.0 278.0]] arrow=[[33.0 267.0] - [39.0 273.0]] center_delta_pixels=1.00
+theme=Dark scale=1 state=closed again glyphs=[[48.0 264.0] - [156.0 278.0]] arrow=[[33.0 267.0] - [39.0 273.0]] center_delta_pixels=1.00
+theme=Dark scale=2 state=closed glyphs=[[48.0 264.0] - [155.0 277.5]] arrow=[[33.0 267.0] - [39.0 273.0]] center_delta_pixels=1.50
+theme=Dark scale=2 state=open glyphs=[[48.0 264.0] - [155.0 277.5]] arrow=[[33.0 267.0] - [39.0 273.0]] center_delta_pixels=1.50
+theme=Dark scale=2 state=closed again glyphs=[[48.0 264.0] - [155.0 277.5]] arrow=[[33.0 267.0] - [39.0 273.0]] center_delta_pixels=1.50
+
+thread 'app::tests::raw_threshold_disclosure_centers_arrow_on_visible_glyphs' (2073425) panicked at crates/niz-gui/src/app_tests.rs:1316:5:
+disclosure arrow and visible glyphs are vertically misaligned: ["Light scale=1 closed: 1.00px", "Light scale=1 open: 1.00px", "Light scale=1 closed again: 1.00px", "Light scale=2 closed: 1.50px", "Light scale=2 open: 1.50px", "Light scale=2 closed again: 1.50px", "Dark scale=1 closed: 1.00px", "Dark scale=1 open: 1.00px", "Dark scale=1 closed again: 1.00px", "Dark scale=2 closed: 1.50px", "Dark scale=2 open: 1.50px", "Dark scale=2 closed again: 1.50px"]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test app::tests::raw_threshold_disclosure_centers_arrow_on_visible_glyphs ... FAILED
+
+failures:
+
+failures:
+    app::tests::raw_threshold_disclosure_centers_arrow_on_visible_glyphs
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 51 filtered out; finished in 1.37s
+
+error: test failed, to rerun pass `-p niz-gui --lib`

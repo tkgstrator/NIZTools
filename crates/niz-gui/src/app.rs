@@ -356,36 +356,58 @@ impl App {
         Palette::of(ui).card().show(ui, |ui| {
             ui.set_width(ui.available_width());
             ui.strong(format!(
-                "調整するキー: #{:02} · {}",
+                "選択中のキー: #{:02} · {}",
                 self.calibration_position + 1,
                 keyboard::physical_legend(self.calibration_position)
             ));
-            ui.colored_label(Palette::of(ui).warning, "キーごとのしきい値変更は未対応です");
-            ui.label("この機種の個別調整にはまだ対応していません。キーの選択だけでは設定を変更しません。");
-            let value = self.controller.raw_thresholds()
-                .and_then(|read| read.snapshot.value_for_position(self.calibration_position))
-                .map(|value| format!("{value} (0x{value:02X})"))
+            ui.colored_label(Palette::of(ui).warning, "しきい値の変更は未対応です");
+            let selected_value = self.controller.raw_thresholds()
+                .and_then(|read| read.snapshot.value_for_position(self.calibration_position));
+            let value = selected_value
+                .map(|value| value.to_string())
                 .unwrap_or_else(|| if self.controller.raw_thresholds_pending() { "読み込み中…".into() } else { "未取得".into() });
             ui.horizontal_wrapped(|ui| {
-                ui.label(format!("読み取り時の生しきい値: {value}"));
+                ui.label(format!("しきい値: {value}"));
                 let enabled = self.controller.can_read_raw_thresholds()
                     && self.confirm.is_none() && !popup_at_frame_start
                     && !egui::Popup::is_any_open(ui.ctx());
                 if ui.add_enabled(enabled, egui::Button::new("しきい値を読み込む"))
-                    .on_hover_text("キーを離して読み込んでください。読み取り中は入力が一時停止し、補正状態が既定値に戻ることがあります。")
+                    .on_hover_text("キーを離して読み込んでください。入力が一時停止し、補正が初期値に戻る場合があります。")
                     .clicked()
                 {
                     let result = self.controller.read_raw_thresholds();
                     self.result(result);
                 }
+                if self.controller.raw_thresholds().is_some_and(|read| read.source == RawThresholdSource::Simulation) {
+                    ui.small("DEMO値");
+                }
             });
-            ui.label("通常スキャンの内部値。押し込み量(mm)ではありません。");
             if !self.controller.calibration_active() {
-                ui.small("キーを離して読み込んでください。読み取り中は入力が一時停止し、補正状態が既定値に戻ることがあります。");
+                ui.small("キーを離して読み込んでください。入力が一時停止し、補正が初期値に戻る場合があります。");
             }
-            if self.controller.raw_thresholds().is_some_and(|read| read.source == RawThresholdSource::Simulation) {
-                ui.small("DEMO: シミュレーション値です。実機から読み取った値ではありません。");
-            }
+            let details_title = "しきい値について";
+            egui::CollapsingHeader::new(details_title).icon(move |ui, openness, response| {
+                use egui::emath::GuiRounding as _;
+                let galley = egui::WidgetText::from(details_title).into_galley(
+                    ui, Some(egui::TextWrapMode::Extend), f32::INFINITY, egui::TextStyle::Button,
+                );
+                // Match the title's pixel-snapped visible glyphs, not its font line box.
+                let text_top = (response.rect.center().y - galley.size().y / 2.)
+                    .round_to_pixels(ui.ctx().pixels_per_point());
+                let glyph_center = text_top + galley.mesh_bounds.center().y;
+                let rect = response.rect.translate(egui::vec2(0., glyph_center - response.rect.center().y));
+                egui::collapsing_header::paint_default_icon(ui, openness, &response.clone().with_new_rect(rect));
+            }).show(ui, |ui| {
+                ui.label("通常スキャンの内部値。押し込み量(mm)ではありません。");
+                if let Some(value) = selected_value {
+                    ui.label(format!("選択中のキーの内部値: {value} (0x{value:02X})"));
+                }
+                ui.label("読み取り時点の値です。再読み込みするまで更新されません。");
+                ui.label("キーの選択だけでは設定を変更しません。");
+                if self.controller.raw_thresholds().is_some_and(|read| read.source == RawThresholdSource::Simulation) {
+                    ui.small("DEMO: シミュレーション値です。実機から読み取った値ではありません。");
+                }
+            });
         });
         if self.controller.calibration_active() {
             Palette::of(ui).card().show(ui, |ui| {
@@ -426,7 +448,6 @@ impl App {
                 ui.label(format!("読み取り時刻: Unix {}.{:03}秒 · 接続世代 {}", time.as_secs(), time.subsec_millis(), read.generation));
                 ui.label(match read.source { RawThresholdSource::Device => "読み取り元: 接続中の実機", RawThresholdSource::Simulation => "読み取り元: DEMOの生成値" });
                 ui.small("読み取り時点の通常スキャン用しきい値です。継続的なセンサー測定や、他の動作モードの確認は行いません。");
-                ui.small("読み取り中は入力が一時停止し、補正状態が既定値に戻ることがあります。");
                 ui.small(format!("受信記録: {}パケット", read.snapshot.raw_reports().len()));
             });
         }

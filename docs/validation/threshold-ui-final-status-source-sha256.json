@@ -1,0 +1,167 @@
+{
+  "alignment_manifest": "/private/tmp/niz-write-20261011/ui/disclosure-alignment/source-manifest.json",
+  "current_sources": [
+    {
+      "path": "crates/niz-gui/src/app.rs",
+      "alignment_sha256": "92c3c61b1b5907873dc0e5284c2a34c847daf760562e4fd5281e288ff5411488",
+      "current_sha256": "2c1713f737bd28e0620c7ecd8a2c95649bf97f7e208f7de4b78d5f75491b8f43",
+      "matches_alignment": false,
+      "post_test_sha256": "2c1713f737bd28e0620c7ecd8a2c95649bf97f7e208f7de4b78d5f75491b8f43",
+      "stable_through_tests": true
+    },
+    {
+      "path": "crates/niz-gui/src/app_tests.rs",
+      "alignment_sha256": "2c64042cd67506fa2fa2abcaa84246f7b189c131a3d157c262b75dbf1e07b226",
+      "current_sha256": "65a4bdad8cea520caec5f4ed3e568252c2edc98c0a575fe8361d3293042cd6b6",
+      "matches_alignment": false,
+      "post_test_sha256": "65a4bdad8cea520caec5f4ed3e568252c2edc98c0a575fe8361d3293042cd6b6",
+      "stable_through_tests": true
+    },
+    {
+      "path": "crates/niz-gui/src/controller.rs",
+      "alignment_sha256": "0b192317bcf6ec1a66b6cc3227efc6cf08051e8d7184f2b964206194284bab6b",
+      "current_sha256": "0b192317bcf6ec1a66b6cc3227efc6cf08051e8d7184f2b964206194284bab6b",
+      "matches_alignment": true,
+      "post_test_sha256": "0b192317bcf6ec1a66b6cc3227efc6cf08051e8d7184f2b964206194284bab6b",
+      "stable_through_tests": true
+    },
+    {
+      "path": "crates/niz-gui/src/editor.rs",
+      "alignment_sha256": "16ca7f858a3c49c1382ef82aeb9891b8ac9eda017f9842be4e57cd7f00cbe1ec",
+      "current_sha256": "16ca7f858a3c49c1382ef82aeb9891b8ac9eda017f9842be4e57cd7f00cbe1ec",
+      "matches_alignment": true,
+      "post_test_sha256": "16ca7f858a3c49c1382ef82aeb9891b8ac9eda017f9842be4e57cd7f00cbe1ec",
+      "stable_through_tests": true
+    },
+    {
+      "path": "crates/niz-gui/src/input_test.rs",
+      "alignment_sha256": "5b0f21003a492214df2c631fc793b28a6825e767053ca532e35e0165833fd4b5",
+      "current_sha256": "5b0f21003a492214df2c631fc793b28a6825e767053ca532e35e0165833fd4b5",
+      "matches_alignment": true,
+      "post_test_sha256": "5b0f21003a492214df2c631fc793b28a6825e767053ca532e35e0165833fd4b5",
+      "stable_through_tests": true
+    },
+    {
+      "path": "crates/niz-gui/src/keyboard.rs",
+      "alignment_sha256": "994f0ce165ae17f927c53fdb19d905d4c15a3b45dcbbbf9661db027259a3a9e5",
+      "current_sha256": "994f0ce165ae17f927c53fdb19d905d4c15a3b45dcbbbf9661db027259a3a9e5",
+      "matches_alignment": true,
+      "post_test_sha256": "994f0ce165ae17f927c53fdb19d905d4c15a3b45dcbbbf9661db027259a3a9e5",
+      "stable_through_tests": true
+    },
+    {
+      "path": "crates/niz-gui/src/lib.rs",
+      "alignment_sha256": "e8f574c5ab061c2da2189acf38225e0d9eee07b69bae809d023dcd06e5fb02c3",
+      "current_sha256": "e8f574c5ab061c2da2189acf38225e0d9eee07b69bae809d023dcd06e5fb02c3",
+      "matches_alignment": true,
+      "post_test_sha256": "e8f574c5ab061c2da2189acf38225e0d9eee07b69bae809d023dcd06e5fb02c3",
+      "stable_through_tests": true
+    },
+    {
+      "path": "crates/niz-gui/src/main.rs",
+      "alignment_sha256": "e2e0029f19dfb6be16ea137adcaa41bb4fd424a8e54b82110bcef61b19841aac",
+      "current_sha256": "e2e0029f19dfb6be16ea137adcaa41bb4fd424a8e54b82110bcef61b19841aac",
+      "matches_alignment": true,
+      "post_test_sha256": "e2e0029f19dfb6be16ea137adcaa41bb4fd424a8e54b82110bcef61b19841aac",
+      "stable_through_tests": true
+    },
+    {
+      "path": "crates/niz-gui/src/protocol.rs",
+      "alignment_sha256": "e5568504d2700c11f066c73e7615b741aaf0dea6874f204dcdc4c30df9270834",
+      "current_sha256": "e5568504d2700c11f066c73e7615b741aaf0dea6874f204dcdc4c30df9270834",
+      "matches_alignment": true,
+      "post_test_sha256": "e5568504d2700c11f066c73e7615b741aaf0dea6874f204dcdc4c30df9270834",
+      "stable_through_tests": true
+    },
+    {
+      "path": "crates/niz-gui/src/theme.rs",
+      "alignment_sha256": "9838343720683b60dd279b1a66eea6ebaf087c1a62efa75167c1e38d832e8ac6",
+      "current_sha256": "9838343720683b60dd279b1a66eea6ebaf087c1a62efa75167c1e38d832e8ac6",
+      "matches_alignment": true,
+      "post_test_sha256": "9838343720683b60dd279b1a66eea6ebaf087c1a62efa75167c1e38d832e8ac6",
+      "stable_through_tests": true
+    },
+    {
+      "path": "crates/niz-gui/src/worker.rs",
+      "alignment_sha256": "555ee752a0db38cb9ff68084fb9b11cb82ad960f2ba32a3707d54ca3255da399",
+      "current_sha256": "555ee752a0db38cb9ff68084fb9b11cb82ad960f2ba32a3707d54ca3255da399",
+      "matches_alignment": true,
+      "post_test_sha256": "555ee752a0db38cb9ff68084fb9b11cb82ad960f2ba32a3707d54ca3255da399",
+      "stable_through_tests": true
+    },
+    {
+      "path": "crates/niz-gui/tests/controller.rs",
+      "alignment_sha256": "ad253d840558db35c824e466167f404acc662b96d6eee01c4671c77f66e72683",
+      "current_sha256": "ad253d840558db35c824e466167f404acc662b96d6eee01c4671c77f66e72683",
+      "matches_alignment": true,
+      "post_test_sha256": "ad253d840558db35c824e466167f404acc662b96d6eee01c4671c77f66e72683",
+      "stable_through_tests": true
+    },
+    {
+      "path": "crates/niz-gui/tests/editor.rs",
+      "alignment_sha256": "3b41475d9a5b29f91edd286e184ee3e38026d0a9f89afb6d9b1ad7c055c0066a",
+      "current_sha256": "3b41475d9a5b29f91edd286e184ee3e38026d0a9f89afb6d9b1ad7c055c0066a",
+      "matches_alignment": true,
+      "post_test_sha256": "3b41475d9a5b29f91edd286e184ee3e38026d0a9f89afb6d9b1ad7c055c0066a",
+      "stable_through_tests": true
+    },
+    {
+      "path": "crates/niz-gui/tests/keyboard.rs",
+      "alignment_sha256": "3604de31b4124902eb323d156c6e1ea6fc55fb76d11c53956a3c12a0e153f3fb",
+      "current_sha256": "3604de31b4124902eb323d156c6e1ea6fc55fb76d11c53956a3c12a0e153f3fb",
+      "matches_alignment": true,
+      "post_test_sha256": "3604de31b4124902eb323d156c6e1ea6fc55fb76d11c53956a3c12a0e153f3fb",
+      "stable_through_tests": true
+    },
+    {
+      "path": "crates/niz-gui/tests/raw_thresholds_controller.rs",
+      "alignment_sha256": "c0570cba4f231461713ac5305a8ab875da029f601d8ee4a1d69dee536a2d5041",
+      "current_sha256": "c0570cba4f231461713ac5305a8ab875da029f601d8ee4a1d69dee536a2d5041",
+      "matches_alignment": true,
+      "post_test_sha256": "c0570cba4f231461713ac5305a8ab875da029f601d8ee4a1d69dee536a2d5041",
+      "stable_through_tests": true
+    },
+    {
+      "path": "crates/niz-gui/tests/raw_thresholds_worker.rs",
+      "alignment_sha256": "e20ea4c1c7e9a29fd0eea2b3cb3715bc146a6bea2added355e139119e4b18fe1",
+      "current_sha256": "e20ea4c1c7e9a29fd0eea2b3cb3715bc146a6bea2added355e139119e4b18fe1",
+      "matches_alignment": true,
+      "post_test_sha256": "e20ea4c1c7e9a29fd0eea2b3cb3715bc146a6bea2added355e139119e4b18fe1",
+      "stable_through_tests": true
+    },
+    {
+      "path": "crates/niz-gui/tests/worker.rs",
+      "alignment_sha256": "ab6473f660c0846dd0965a42d4c2842e27af5fe670c9e4b6e63c12f21349b8cc",
+      "current_sha256": "ab6473f660c0846dd0965a42d4c2842e27af5fe670c9e4b6e63c12f21349b8cc",
+      "matches_alignment": true,
+      "post_test_sha256": "ab6473f660c0846dd0965a42d4c2842e27af5fe670c9e4b6e63c12f21349b8cc",
+      "stable_through_tests": true
+    }
+  ],
+  "changed_since_alignment": [
+    "crates/niz-gui/src/app.rs",
+    "crates/niz-gui/src/app_tests.rs"
+  ],
+  "exact_copy_only_delta": true,
+  "replacements": {
+    "app.rs": 1,
+    "app_tests.rs": 3
+  },
+  "all_17_stable_through_tests": true,
+  "tests": [
+    {
+      "command": "cargo test -p niz-gui --lib raw_threshold_",
+      "exit_code": 0,
+      "passed": 11,
+      "failed": 0,
+      "log": "final-status-raw-tests.log"
+    },
+    {
+      "command": "cargo test -p niz-gui --lib per_key_threshold_capability_is_visible_without_legacy_write_controls",
+      "exit_code": 0,
+      "passed": 1,
+      "failed": 0,
+      "log": "final-status-capability-test.log"
+    }
+  ]
+}
