@@ -4,7 +4,8 @@ use crate::{
 };
 use niz_core::Profile;
 use niz_device::{
-    CalibrationPhase, CalibrationStatus, RawThresholds, SensitivityStatus, supports_raw_thresholds,
+    CalibrationPhase, CalibrationStatus, CalibrationValues, RawThresholds, SensitivityStatus,
+    supports_raw_thresholds,
 };
 use std::{
     path::PathBuf,
@@ -47,6 +48,14 @@ pub struct RawThresholdRead {
     pub source: RawThresholdSource,
     baseline: Profile,
 }
+pub struct CalibrationValueRead {
+    pub snapshot: CalibrationValues,
+    pub target: Target,
+    pub generation: u64,
+    pub read_at: std::time::SystemTime,
+    pub source: RawThresholdSource,
+    baseline: Profile,
+}
 pub struct Controller<P: Port> {
     pub port: P,
     pub editor: Option<Editor>,
@@ -64,6 +73,7 @@ pub struct Controller<P: Port> {
     pub selected_path: Option<String>,
     pub attached_target: Option<Target>,
     raw_thresholds: Option<RawThresholdRead>,
+    calibration_values: Option<CalibrationValueRead>,
     next_operation: u64,
     operation: Option<Pending>,
     editor_path: Option<String>,
@@ -88,6 +98,7 @@ impl<P: Port> Controller<P> {
             selected_path: None,
             attached_target: None,
             raw_thresholds: None,
+            calibration_values: None,
             next_operation: 0,
             operation: None,
             editor_path: None,
@@ -137,6 +148,8 @@ impl<P: Port> Controller<P> {
                 .find(|d| &d.path == path)
                 .map(Target::from),
             Command::ReadRawThresholds
+            | Command::ReadCalibrationValues
+            | Command::ReadCurrentSettings
             | Command::AdjustSensitivity { .. }
             | Command::Trial { .. }
             | Command::Begin { .. }
@@ -146,7 +159,12 @@ impl<P: Port> Controller<P> {
             | Command::Cancel => self.attached_target.clone(),
             _ => None,
         };
-        let source_baseline = if matches!(command, Command::ReadRawThresholds) {
+        let source_baseline = if matches!(
+            command,
+            Command::ReadRawThresholds
+                | Command::ReadCalibrationValues
+                | Command::ReadCurrentSettings
+        ) {
             self.editor.as_ref().map(|e| e.baseline.clone())
         } else {
             None
@@ -177,6 +195,7 @@ impl<P: Port> Controller<P> {
         }
         if self.selected_path.as_ref() != Some(&path) {
             self.raw_thresholds = None;
+            self.calibration_values = None;
             self.calibration = None;
             self.sensitivity = None;
             self.selected_path = Some(path);
@@ -212,6 +231,7 @@ impl<P: Port> Controller<P> {
         self.devices = devices;
         if !self.live {
             self.raw_thresholds = None;
+            self.calibration_values = None;
         }
     }
     fn changing_target(&self) -> Result<&Target, String> {
@@ -256,6 +276,65 @@ impl<P: Port> Controller<P> {
                 })
         })
     }
+    pub fn can_read_calibration_values(&self) -> bool {
+        self.can_read_raw_thresholds()
+    }
+    pub fn can_read_current_settings(&self) -> bool {
+        self.can_read_raw_thresholds()
+    }
+    pub fn read_current_settings(&mut self) -> Result<(), String> {
+        self.available()?;
+        if !self.can_read_current_settings() {
+            return Err(
+                "現在の設定の読み込みには、対象デバイスの新しい読み込みが必要です。".into(),
+            );
+        }
+        self.dispatch(Command::ReadCurrentSettings, None)?;
+        self.raw_thresholds = None;
+        self.calibration_values = None;
+        self.failure = None;
+        self.message = "現在の設定を読み込み中".into();
+        Ok(())
+    }
+    pub fn current_settings_pending(&self) -> bool {
+        self.operation
+            .as_ref()
+            .is_some_and(|op| matches!(op.command, Command::ReadCurrentSettings))
+    }
+    pub fn calibration_values(&self) -> Option<&CalibrationValueRead> {
+        self.calibration_values.as_ref().filter(|read| {
+            self.live
+                && !self.close_requested
+                && self.generation == read.generation
+                && self
+                    .changing_target()
+                    .is_ok_and(|target| target == &read.target)
+                && self.editor.as_ref().is_some_and(|e| {
+                    e.baseline.identity == read.baseline.identity
+                        && e.baseline.firmware == read.baseline.firmware
+                        && e.baseline.records == read.baseline.records
+                })
+        })
+    }
+    pub fn read_calibration_values(&mut self) -> Result<(), String> {
+        self.available()?;
+        if !self.can_read_calibration_values() {
+            return Err(
+                "Calibration values require the exact fresh XRGB V1.0.48 device baseline".into(),
+            );
+        }
+        self.calibration_values = None;
+        self.raw_thresholds = None;
+        self.failure = None;
+        self.dispatch(Command::ReadCalibrationValues, None)?;
+        self.message = "校正値を読み込み中".into();
+        Ok(())
+    }
+    pub fn calibration_values_pending(&self) -> bool {
+        self.operation
+            .as_ref()
+            .is_some_and(|op| matches!(op.command, Command::ReadCalibrationValues))
+    }
     pub fn read_raw_thresholds(&mut self) -> Result<(), String> {
         self.available()?;
         if !self.can_read_raw_thresholds() {
@@ -264,6 +343,7 @@ impl<P: Port> Controller<P> {
             );
         }
         self.raw_thresholds = None;
+        self.calibration_values = None;
         self.failure = None;
         self.dispatch(Command::ReadRawThresholds, None)?;
         self.message = "しきい値を読み込み中".into();
@@ -308,6 +388,7 @@ impl<P: Port> Controller<P> {
             );
         }
         self.raw_thresholds = None;
+        self.calibration_values = None;
         self.sensitivity = None;
         self.dispatch(
             Command::Trial {
@@ -329,6 +410,7 @@ impl<P: Port> Controller<P> {
         }
         self.selected_path = Some(path.clone());
         self.raw_thresholds = None;
+        self.calibration_values = None;
         self.calibration = None;
         self.sensitivity = None;
         self.generation += 1;
@@ -370,6 +452,7 @@ impl<P: Port> Controller<P> {
             None,
         )?;
         self.raw_thresholds = None;
+        self.calibration_values = None;
         self.sensitivity = None;
         self.calibration = None;
         self.failure = None;
@@ -423,6 +506,7 @@ impl<P: Port> Controller<P> {
             );
         }
         self.raw_thresholds = None;
+        self.calibration_values = None;
         self.cancel.store(false, Ordering::Release);
         self.cancel_requested = false;
         self.failure = None;
@@ -474,6 +558,7 @@ impl<P: Port> Controller<P> {
     }
     pub fn close(&mut self) {
         self.raw_thresholds = None;
+        self.calibration_values = None;
         self.close_requested = true;
         if self.calibration_active() {
             self.cancel_calibration();
@@ -502,10 +587,21 @@ impl<P: Port> Controller<P> {
         self.pending = None;
         let raw_reply = matches!(event.response, Response::RawThresholds { .. });
         let raw_command = matches!(op.command, Command::ReadRawThresholds);
+        let calibration_reply = matches!(event.response, Response::CalibrationValues { .. });
+        let calibration_command = matches!(op.command, Command::ReadCalibrationValues);
+        let current_reply = matches!(event.response, Response::CurrentSettings { .. });
+        let current_command = matches!(op.command, Command::ReadCurrentSettings);
         if (raw_reply && !raw_command)
             || (raw_command && !raw_reply && !matches!(event.response, Response::Error(_)))
+            || (calibration_reply && !calibration_command)
+            || (calibration_command
+                && !calibration_reply
+                && !matches!(event.response, Response::Error(_)))
+            || (current_reply && !current_command)
+            || (current_command && !current_reply && !matches!(event.response, Response::Error(_)))
         {
             self.raw_thresholds = None;
+            self.calibration_values = None;
             self.live = false;
             self.message =
                 "Unexpected response for the owned raw threshold operation; read the device again."
@@ -515,6 +611,24 @@ impl<P: Port> Controller<P> {
                 failure.raw_reports = snapshot
                     .raw_reports()
                     .iter()
+                    .map(|report| report.to_vec())
+                    .collect();
+            }
+            if let Response::CalibrationValues { snapshot, .. } = &event.response {
+                failure.raw_reports = snapshot
+                    .raw_reports()
+                    .iter()
+                    .map(|report| report.to_vec())
+                    .collect();
+            }
+            if let Response::CurrentSettings {
+                raw, calibration, ..
+            } = &event.response
+            {
+                failure.raw_reports = raw
+                    .raw_reports()
+                    .iter()
+                    .chain(calibration.raw_reports())
                     .map(|report| report.to_vec())
                     .collect();
             }
@@ -544,6 +658,71 @@ impl<P: Port> Controller<P> {
         }
         match event.response {
             Response::Devices(devices) => self.reconcile_devices(devices),
+            Response::CurrentSettings {
+                raw,
+                calibration,
+                target,
+                source,
+            } => {
+                let baseline = op.source_baseline.as_ref();
+                let valid = !self.close_requested
+                    && self.live
+                    && op.target.as_ref() == Some(&target)
+                    && self
+                        .changing_target()
+                        .is_ok_and(|current| current == &target)
+                    && baseline.is_some_and(|baseline| {
+                        baseline.identity == target.identity
+                            && raw.identity == baseline.identity
+                            && calibration.identity == baseline.identity
+                            && raw.firmware == baseline.firmware
+                            && calibration.firmware == baseline.firmware
+                            && supports_raw_thresholds(&raw.identity, &raw.firmware)
+                            && self.editor.as_ref().is_some_and(|e| {
+                                e.baseline.identity == baseline.identity
+                                    && e.baseline.firmware == baseline.firmware
+                                    && e.baseline.records == baseline.records
+                            })
+                    });
+                if valid {
+                    let read_at = std::time::SystemTime::now();
+                    let baseline = baseline.unwrap().clone();
+                    self.raw_thresholds = Some(RawThresholdRead {
+                        snapshot: raw,
+                        target: target.clone(),
+                        source,
+                        generation: op.ticket.generation,
+                        read_at,
+                        baseline: baseline.clone(),
+                    });
+                    self.calibration_values = Some(CalibrationValueRead {
+                        snapshot: calibration,
+                        target,
+                        source,
+                        generation: op.ticket.generation,
+                        read_at,
+                        baseline,
+                    });
+                    self.message = match source {
+                        RawThresholdSource::Device => "現在の設定を読み込みました".into(),
+                        RawThresholdSource::Simulation => "DEMO · 現在の設定を表示しました".into(),
+                    };
+                } else {
+                    self.raw_thresholds = None;
+                    self.calibration_values = None;
+                    self.live = false;
+                    self.message =
+                        "現在の設定が対象と一致しません。デバイスを読み込み直してください。".into();
+                    let mut failure = Failure::from(self.message.clone());
+                    failure.raw_reports = raw
+                        .raw_reports()
+                        .iter()
+                        .chain(calibration.raw_reports())
+                        .map(|report| report.to_vec())
+                        .collect();
+                    self.failure = Some(failure);
+                }
+            }
             Response::RawThresholds {
                 snapshot,
                 target,
@@ -582,6 +761,7 @@ impl<P: Port> Controller<P> {
                     };
                 } else {
                     self.raw_thresholds = None;
+                    self.calibration_values = None;
                     self.live = false;
                     self.message = "Raw threshold source or reply changed; discard the snapshot and read the device again.".into();
                     let mut failure = Failure::from(self.message.clone());
@@ -593,8 +773,59 @@ impl<P: Port> Controller<P> {
                     self.failure = Some(failure);
                 }
             }
+            Response::CalibrationValues {
+                snapshot,
+                target,
+                source,
+            } => {
+                let baseline = op.source_baseline.as_ref();
+                let valid = !self.close_requested
+                    && self.live
+                    && op.target.as_ref() == Some(&target)
+                    && self
+                        .changing_target()
+                        .is_ok_and(|current| current == &target)
+                    && baseline.is_some_and(|baseline| {
+                        baseline.identity == target.identity
+                            && snapshot.identity == baseline.identity
+                            && snapshot.firmware == baseline.firmware
+                            && supports_raw_thresholds(&snapshot.identity, &snapshot.firmware)
+                            && self.editor.as_ref().is_some_and(|e| {
+                                e.baseline.identity == baseline.identity
+                                    && e.baseline.firmware == baseline.firmware
+                                    && e.baseline.records == baseline.records
+                            })
+                    });
+                if valid {
+                    self.calibration_values = Some(CalibrationValueRead {
+                        snapshot,
+                        target,
+                        source,
+                        generation: op.ticket.generation,
+                        read_at: std::time::SystemTime::now(),
+                        baseline: baseline.unwrap().clone(),
+                    });
+                    self.message = match source {
+                        RawThresholdSource::Device => "校正値を読み込みました".into(),
+                        RawThresholdSource::Simulation => "DEMO · 校正値を表示しました".into(),
+                    };
+                } else {
+                    self.calibration_values = None;
+                    self.live = false;
+                    self.message =
+                        "Calibration value source or reply changed; read the device again.".into();
+                    let mut failure = Failure::from(self.message.clone());
+                    failure.raw_reports = snapshot
+                        .raw_reports()
+                        .iter()
+                        .map(|report| report.to_vec())
+                        .collect();
+                    self.failure = Some(failure);
+                }
+            }
             Response::Read { profile, cancel } => {
                 self.raw_thresholds = None;
+                self.calibration_values = None;
                 self.cancel = cancel;
                 self.calibration = None;
                 self.sensitivity = None;
@@ -709,6 +940,7 @@ impl<P: Port> Controller<P> {
             }
             Response::Error(e) => {
                 self.raw_thresholds = None;
+                self.calibration_values = None;
                 if !matches!(op.command, Command::List) {
                     self.live = false;
                 }
@@ -723,6 +955,7 @@ impl<P: Port> Controller<P> {
             }
             Response::Shutdown => {
                 self.raw_thresholds = None;
+                self.calibration_values = None;
                 self.ready_close = true;
             }
         }
@@ -745,6 +978,7 @@ impl<P: Port> Controller<P> {
             self.editor_path = None;
         }
         self.raw_thresholds = None;
+        self.calibration_values = None;
         self.message =
             "Loaded into the offline draft. A file does not create a live device baseline.".into();
         Ok(())

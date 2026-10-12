@@ -43,8 +43,12 @@ pub struct PacketTrace {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct HeldKeyCalibration {
     pub position: usize,
+    /// Complete physical-order DC1 RAM actuation table before/after DD.
     pub before: Option<Vec<u8>>,
     pub after: Option<Vec<u8>>,
+    /// Complete physical-order DC2 RAM T calibration table before/after DD.
+    pub t_before: Option<Vec<u8>>,
+    pub t_after: Option<Vec<u8>>,
 }
 #[derive(Clone, Debug, Serialize)]
 pub struct CalibrationStatus {
@@ -333,6 +337,8 @@ impl Session {
             position,
             before: None,
             after: None,
+            t_before: None,
+            t_after: None,
         });
         let prepare = (|| {
             if self.cancelled() {
@@ -372,11 +378,19 @@ impl Session {
                         "calibration cancellation requested before threshold capture",
                     ));
                 }
-                // Complete the bounded DC1 transaction even if cancellation
-                // arrives during its reads, then stop before any next command.
+                // Complete each bounded DC transaction even if cancellation
+                // arrives during its reads, then stop before the next command.
                 let thresholds = self.raw_thresholds_inner()?;
                 self.status_mut().held_key.as_mut().unwrap().before =
                     Some(thresholds.values().to_vec());
+                if self.cancelled() {
+                    return Err(Error::new(
+                        "calibration cancellation requested before T capture",
+                    ));
+                }
+                let t_values = self.calibration_values_inner()?;
+                self.status_mut().held_key.as_mut().unwrap().t_before =
+                    Some(t_values.values().to_vec());
             }
             self.require_quiet_calibration_input()?;
             Ok(())
@@ -452,13 +466,23 @@ impl Session {
         let held_only = self.status_mut().held_key.is_some();
         if held_only {
             self.status_mut().phase = CalibrationPhase::Verifying;
-            // DE has completed. DC1 restores the previous scanner enable
-            // state, so keep the same D9=0 ownership through the full capture.
+            // DE has completed. DC getter traffic restores the previous scanner
+            // enable state, so keep D9=0 ownership through both captures.
             // A failed read passively settles under ownership before cleanup.
             match self.raw_thresholds_inner() {
                 Ok(thresholds) => {
                     self.status_mut().held_key.as_mut().unwrap().after =
                         Some(thresholds.values().to_vec());
+                }
+                Err(error) => return Err(self.calibration_error(error, true, self.cancelled())),
+            }
+            if self.cancelled() {
+                return Err(self.cancellation_error());
+            }
+            match self.calibration_values_inner() {
+                Ok(t_values) => {
+                    self.status_mut().held_key.as_mut().unwrap().t_after =
+                        Some(t_values.values().to_vec());
                 }
                 Err(error) => return Err(self.calibration_error(error, true, self.cancelled())),
             }

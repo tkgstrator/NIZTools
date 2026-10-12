@@ -1,8 +1,8 @@
 use crate::editor::Selection;
 use niz_core::Profile;
 use niz_device::{
-    ApplyOutcome, CalibrationStatus, DeviceDescriptor, RawThresholds, SensitivityStatus,
-    SnapshotPaths,
+    ApplyOutcome, CalibrationStatus, CalibrationValues, DeviceDescriptor, RawThresholds,
+    SensitivityStatus, SnapshotPaths,
 };
 use std::{
     path::PathBuf,
@@ -35,6 +35,8 @@ pub enum Command {
         path: String,
     },
     ReadRawThresholds,
+    ReadCalibrationValues,
+    ReadCurrentSettings,
     AdjustSensitivity {
         backup: PathBuf,
         coefficient: u8,
@@ -109,6 +111,17 @@ pub enum Response {
     },
     RawThresholds {
         snapshot: RawThresholds,
+        target: Target,
+        source: RawThresholdSource,
+    },
+    CalibrationValues {
+        snapshot: CalibrationValues,
+        target: Target,
+        source: RawThresholdSource,
+    },
+    CurrentSettings {
+        raw: RawThresholds,
+        calibration: CalibrationValues,
         target: Target,
         source: RawThresholdSource,
     },

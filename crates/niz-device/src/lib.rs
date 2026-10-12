@@ -11,7 +11,7 @@ pub use sensitivity::{SensitivityPhase, SensitivityResult, SensitivityStatus};
 mod session;
 mod transport;
 pub use backup::{load_profile, save_backup};
-pub use raw_thresholds::{RawThresholds, supports_raw_thresholds};
+pub use raw_thresholds::{CalibrationValues, RawThresholds, supports_raw_thresholds};
 pub use session::{ApplyOutcome, ApplyResult, LiveBaseline, Session};
 pub use transport::{DeviceDescriptor, list_devices};
 #[derive(Debug)]

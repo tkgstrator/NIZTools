@@ -13,9 +13,9 @@ fn single(code: u8) -> Definition {
 #[test]
 fn reassign_to_is_output_not_physical_position() {
     let mut e = Editor::new(Profile::demo());
-    e.selection.from = 1;
-    e.selection.to_code = 43;
-    e.selection.to_position = 2;
+    e.select_from(1);
+    e.choose_output(43);
+    e.selection.to_position = Some(2);
     e.edit().unwrap();
     assert_eq!(e.draft.definition(1).unwrap().keys, vec![43]);
     assert_eq!(e.draft.records[2], e.baseline.records[2]);
@@ -27,8 +27,8 @@ fn swap_to_is_physical_position_and_moves_whole_raw_record() {
     p.records[1][0][63] = 91;
     let mut e = Editor::new(p);
     e.selection.mode = Mode::Swap;
-    e.selection.from = 1;
-    e.selection.to_position = 2;
+    e.selection.from = Some(1);
+    e.selection.to_position = Some(2);
     e.selection.to_code = 43;
     e.edit().unwrap();
     assert_eq!(
@@ -42,8 +42,8 @@ fn layer_selection_changes_same_physical_key_only_on_that_layer() {
     for layer in 0..3 {
         let mut e = Editor::new(Profile::demo());
         e.selection.layer = layer;
-        e.selection.from = 2;
-        e.selection.to_code = 43;
+        e.select_from(2);
+        e.choose_output(43);
         e.edit().unwrap();
         assert_eq!(e.preview().unwrap(), vec![layer * 66 + 2]);
     }
@@ -51,10 +51,11 @@ fn layer_selection_changes_same_physical_key_only_on_that_layer() {
 #[test]
 fn undo_redo_and_noop_history_are_byte_exact() {
     let mut e = Editor::new(Profile::demo());
-    e.selection.to_code = 15;
+    e.select_from(1);
+    e.choose_output(15);
     e.edit().unwrap();
     assert!(!e.undo());
-    e.selection.to_code = 43;
+    e.choose_output(43);
     e.edit().unwrap();
     let edited = e.draft.reports();
     assert!(e.undo());
@@ -62,7 +63,7 @@ fn undo_redo_and_noop_history_are_byte_exact() {
     assert!(e.redo());
     assert_eq!(e.draft.reports(), edited);
     assert!(e.undo());
-    e.selection.to_code = 44;
+    e.choose_output(44);
     e.edit().unwrap();
     assert!(!e.redo());
 }
@@ -70,8 +71,8 @@ fn undo_redo_and_noop_history_are_byte_exact() {
 fn fn_swap_preview_is_all_layers_atomic_and_undoable() {
     let mut e = Editor::new(Profile::demo());
     e.selection.mode = Mode::Swap;
-    e.selection.from = 54;
-    e.selection.to_position = 2;
+    e.selection.from = Some(54);
+    e.selection.to_position = Some(2);
     e.edit().unwrap();
     assert_eq!(e.preview().unwrap(), vec![2, 54, 68, 120, 134, 186]);
     assert!(e.undo());
@@ -91,7 +92,7 @@ fn unknown_source_cannot_be_edited_and_history_remains() {
 #[test]
 fn invalid_selection_and_wrong_import_never_change_draft() {
     let mut e = Editor::new(Profile::demo());
-    e.selection.from = 66;
+    e.selection.from = Some(66);
     assert!(e.edit().is_err());
     let mut other = Profile::demo();
     other.identity.product_id = 2;
@@ -115,6 +116,7 @@ fn native_import_retains_opaque_and_is_one_undo_step() {
 fn regeneration_uses_selection_without_mutating_source() {
     let p = Profile::demo();
     let s = niz_gui::editor::Selection {
+        from: Some(1),
         to_code: 43,
         ..Default::default()
     };
@@ -130,8 +132,8 @@ fn fn_swap_with_unknown_alternate_record_is_atomic() {
     let original = p.records.clone();
     let mut e = Editor::new(p);
     e.selection.mode = Mode::Swap;
-    e.selection.from = 54;
-    e.selection.to_position = 2;
+    e.selection.from = Some(54);
+    e.selection.to_position = Some(2);
     assert!(e.edit().is_err());
     assert_eq!(e.draft.records, original);
     assert!(!e.undo());
@@ -140,7 +142,8 @@ fn fn_swap_with_unknown_alternate_record_is_atomic() {
 fn unknown_import_delta_leaves_existing_dirty_history_untouched() {
     let p = Profile::demo();
     let mut e = Editor::new(p.clone());
-    e.selection.to_code = 43;
+    e.select_from(1);
+    e.choose_output(43);
     e.edit().unwrap();
     let draft = e.draft.records.clone();
     let mut imported = p;

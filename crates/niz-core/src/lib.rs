@@ -14,7 +14,9 @@ pub use profile::{DeviceIdentity, Profile};
 pub use protocol::{
     Definition, MAX_FILE_SIZE, MAX_REPORTS, command, decode_definition, encode_definition,
 };
-pub use raw_thresholds::{RawThresholdDecoder, decode_raw_thresholds};
+pub use raw_thresholds::{
+    CalibrationValueDecoder, RawThresholdDecoder, decode_calibration_values, decode_raw_thresholds,
+};
 
 /// Logical HID payload, without hidapi's outgoing report-ID prefix.
 pub type Report = [u8; 64];

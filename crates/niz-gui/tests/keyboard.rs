@@ -23,23 +23,57 @@ fn single(code: u8) -> Definition {
 }
 
 #[test]
+fn loaded_assignment_starts_unselected_and_same_key_click_clears_selection() {
+    let mut e = Editor::new(captured());
+    let original = e.draft.reports();
+    let mut board = KeyboardState::default();
+    assert_eq!(e.selection.from, None);
+    assert_eq!(e.selection.to_position, None);
+    assert!(e.proposed().is_err());
+    assert!(board.click(&mut e, 30, false, false, false));
+    assert_eq!(e.selection.from, Some(30));
+    assert!(board.click(&mut e, 30, false, false, false));
+    assert_eq!(e.selection.from, None);
+    assert!(e.proposed().is_err());
+    assert_eq!(e.draft.reports(), original);
+}
+
+#[test]
+fn swap_clicking_highlighted_from_then_to_clears_each_operand() {
+    let mut e = Editor::new(captured());
+    let mut board = KeyboardState::default();
+    board.set_mode(&mut e, Mode::Swap);
+    assert!(board.click(&mut e, 30, false, false, false));
+    assert_eq!(board.target, ClickTarget::To);
+    assert!(board.set_target(ClickTarget::From, false, false, false));
+    assert!(board.click(&mut e, 30, false, false, false));
+    assert_eq!(e.selection.from, None);
+    assert_eq!(board.target, ClickTarget::From);
+    assert!(board.click(&mut e, 30, false, false, false));
+    assert_eq!(board.target, ClickTarget::To);
+    assert!(board.click(&mut e, 31, false, false, false));
+    assert!(board.click(&mut e, 31, false, false, false));
+    assert_eq!(e.selection.to_position, None);
+    assert!(e.proposed().is_err());
+}
+
+#[test]
 fn selecting_a_loads_its_setting_without_editing_or_creating_history() {
     let mut e = Editor::new(captured());
     let before = e.draft.reports();
     let mut board = KeyboardState::default();
     assert!(board.click(&mut e, 30, false, false, false));
-    assert_eq!((e.selection.from, e.selection.to_code), (30, 43));
+    assert_eq!((e.selection.from, e.selection.to_code), (Some(30), 43));
     assert_eq!(e.proposed().unwrap().reports(), before);
     assert_eq!(e.draft.reports(), before);
     assert!(!e.dirty());
     assert!(!e.can_undo());
     assert!(!e.can_redo());
     e.choose_output(44);
-    assert!(!board.click(&mut e, 30, false, false, false));
-    assert_eq!(
-        e.selection.to_code, 44,
-        "same key must retain pending output"
-    );
+    assert!(board.click(&mut e, 30, false, false, false));
+    assert_eq!(e.selection.from, None);
+    assert!(!e.output_ready());
+    assert!(e.proposed().is_err());
     assert_eq!(e.draft.reports(), before);
 }
 #[test]
@@ -60,10 +94,13 @@ fn from_dropdown_uses_the_same_navigation_and_only_draft_values() {
 fn layer_navigation_preserves_slots_and_initializes_current_layer_output() {
     let mut e = Editor::new(captured());
     e.select_from(7);
-    e.selection.to_position = 61;
+    e.selection.to_position = Some(61);
     assert_eq!(e.selection.to_code, 21);
     e.select_layer(1);
-    assert_eq!((e.selection.from, e.selection.to_position), (7, 61));
+    assert_eq!(
+        (e.selection.from, e.selection.to_position),
+        (Some(7), Some(61))
+    );
     assert!(
         !e.output_ready(),
         "trigger action is preserved until explicitly replaced"
@@ -87,17 +124,29 @@ fn swap_target_transitions_are_explicit_and_never_swap_on_a_click() {
     board.click(&mut e, 30, false, false, false);
     assert_eq!(board.target, ClickTarget::To);
     board.click(&mut e, 31, false, false, false);
-    assert_eq!((e.selection.from, e.selection.to_position), (30, 31));
+    assert_eq!(
+        (e.selection.from, e.selection.to_position),
+        (Some(30), Some(31))
+    );
     board.click(&mut e, 32, false, false, false);
-    assert_eq!((e.selection.from, e.selection.to_position), (30, 32));
+    assert_eq!(
+        (e.selection.from, e.selection.to_position),
+        (Some(30), Some(32))
+    );
     assert_eq!(board.target, ClickTarget::To);
     e.select_layer(2);
-    assert_eq!((e.selection.from, e.selection.to_position), (30, 32));
+    assert_eq!(
+        (e.selection.from, e.selection.to_position),
+        (Some(30), Some(32))
+    );
     assert_eq!(e.draft.reports(), before);
     assert!(!e.can_undo());
     board.set_target(ClickTarget::From, false, false, false);
     board.click(&mut e, 29, false, false, false);
-    assert_eq!((e.selection.from, e.selection.to_position), (29, 32));
+    assert_eq!(
+        (e.selection.from, e.selection.to_position),
+        (Some(29), Some(32))
+    );
     board.set_mode(&mut e, Mode::Reassign);
     assert_eq!(board.target, ClickTarget::From);
     board.set_mode(&mut e, Mode::Swap);
@@ -217,21 +266,21 @@ fn every_fixed_slot_remains_reachable_at_minimum_width_and_duplicates_do_not_reo
     assert_eq!(key_view(&e, 30).label, key_view(&e, 31).label);
     let mut board = KeyboardState::default();
     board.click(&mut e, 30, false, false, false);
-    assert_eq!(e.selection.from, 30);
+    assert_eq!(e.selection.from, Some(30));
     board.click(&mut e, 31, false, false, false);
-    assert_eq!(e.selection.from, 31);
+    assert_eq!(e.selection.from, Some(31));
 }
 #[test]
-fn same_swap_operands_remain_visible_without_editing() {
+fn clicking_swap_from_again_clears_it_without_editing() {
     let mut e = Editor::new(captured());
     let mut board = KeyboardState::default();
     board.set_mode(&mut e, Mode::Swap);
     board.click(&mut e, 30, false, false, false);
     board.click(&mut e, 30, false, false, false);
     let view = key_view(&e, 30);
-    assert!(view.is_from && view.is_to);
+    assert!(!view.is_from && !view.is_to);
     assert!(!e.dirty());
-    assert_eq!(e.proposed().unwrap().reports(), e.draft.reports());
+    assert!(e.proposed().is_err());
 }
 #[test]
 fn demo_uses_the_captured_profile_without_changing_core_demo_semantics() {
@@ -293,7 +342,8 @@ fn official_position_legends_remain_distinct_from_current_captured_assignments()
 #[test]
 fn importing_an_advanced_selected_action_requires_an_explicit_replacement() {
     let mut e = Editor::new(captured());
-    let slot = e.selection.from;
+    e.select_from(1);
+    let slot = e.selection.from.unwrap();
     let mut imported = e.draft.clone();
     imported
         .set_definition(
@@ -316,10 +366,12 @@ fn importing_an_advanced_selected_action_requires_an_explicit_replacement() {
     );
     assert!(e.proposed().is_err());
     let mut board = KeyboardState::default();
-    assert!(!board.click(&mut e, slot, false, false, false));
+    assert!(board.click(&mut e, slot, false, false, false));
+    assert_eq!(e.selection.from, None);
     assert!(e.edit().is_err());
     assert_eq!(e.draft.reports(), advanced);
     assert!(e.undo());
+    e.select_from(slot);
     assert_eq!(e.selection.to_code, 15);
     assert!(e.output_ready());
     assert!(e.redo());
@@ -350,6 +402,7 @@ fn history_restores_unassigned_and_special_actions_without_a_stale_replacement()
         let mut p = captured();
         p.set_definition(1, &original).unwrap();
         let mut e = Editor::new(p);
+        e.select_from(1);
         assert!(!e.output_ready());
         e.choose_output(43);
         e.edit().unwrap();
@@ -365,14 +418,15 @@ fn history_restores_unassigned_and_special_actions_without_a_stale_replacement()
 #[test]
 fn applying_an_updated_selected_record_refreshes_both_known_and_unknown_action_state() {
     let mut e = Editor::new(captured());
+    e.select_from(1);
     e.choose_output(44);
     let mut p = e.draft.clone();
-    p.records[e.selection.from][0][6] = 178;
+    p.records[e.selection.from.unwrap()][0][6] = 178;
     e.accept_applied(p);
     assert!(!e.output_ready());
     assert!(e.proposed().is_err());
     let mut p = e.draft.clone();
-    p.records[e.selection.from][0][6] = 43;
+    p.records[e.selection.from.unwrap()][0][6] = 43;
     e.accept_applied(p);
     assert!(e.output_ready());
     assert_eq!(e.selection.to_code, 43);

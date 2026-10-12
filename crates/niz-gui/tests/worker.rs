@@ -56,6 +56,13 @@ impl Backend for Fake {
             "No analog fixture in this legacy fake".to_string(),
         ))
     }
+    fn read_calibration_values(
+        &mut self,
+    ) -> Result<(niz_device::CalibrationValues, RawThresholdSource), Failure> {
+        Err(Failure::from(
+            "No analog fixture in this legacy fake".to_string(),
+        ))
+    }
     fn adjust_sensitivity(
         &mut self,
         _: &Path,
@@ -140,6 +147,8 @@ fn worker_rejects_arbitrary_draft_even_if_ui_gates_are_bypassed() {
     let mut w = worker();
     read(&mut w);
     let s = Selection {
+        from: Some(1),
+        to_position: Some(2),
         to_code: 43,
         ..Selection::default()
     };
@@ -166,6 +175,8 @@ fn worker_routes_only_exact_basic_operands_from_native_baseline() {
         let mut w = worker();
         read(&mut w);
         let s = Selection {
+            from: Some(1),
+            to_position: Some(2),
             to_code: 43,
             mode,
             ..Selection::default()
@@ -192,6 +203,8 @@ fn stale_generation_and_replayed_operation_never_call_backend() {
     let mut w = worker();
     read(&mut w);
     let s = Selection {
+        from: Some(1),
+        to_position: Some(2),
         to_code: 43,
         ..Selection::default()
     };
@@ -379,6 +392,8 @@ fn changing_request_must_name_the_attached_path_and_descriptor() {
         let mut w = worker();
         read(&mut w);
         let s = Selection {
+            from: Some(1),
+            to_position: Some(2),
             to_code: 43,
             ..Selection::default()
         };

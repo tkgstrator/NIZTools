@@ -4,8 +4,8 @@ use crate::{
 };
 use niz_core::Profile;
 use niz_device::{
-    CalibrationPhase, CalibrationStatus, DeviceDescriptor, LiveBaseline, RawThresholds,
-    SensitivityPhase, SensitivityStatus, Session, supports_raw_thresholds,
+    CalibrationPhase, CalibrationStatus, CalibrationValues, DeviceDescriptor, LiveBaseline,
+    RawThresholds, SensitivityPhase, SensitivityStatus, Session, supports_raw_thresholds,
 };
 use std::{
     path::Path,
@@ -21,6 +21,9 @@ pub trait Backend {
     fn read(&mut self, path: &str) -> Result<(Profile, Arc<AtomicBool>), Failure>;
     fn baseline(&self) -> Option<&Profile>;
     fn read_raw_thresholds(&mut self) -> Result<(RawThresholds, RawThresholdSource), Failure>;
+    fn read_calibration_values(
+        &mut self,
+    ) -> Result<(CalibrationValues, RawThresholdSource), Failure>;
     fn adjust_sensitivity(
         &mut self,
         backup: &Path,
@@ -120,6 +123,8 @@ impl<B: Backend> Worker<B> {
         if matches!(
             r.command,
             Command::ReadRawThresholds
+                | Command::ReadCalibrationValues
+                | Command::ReadCurrentSettings
                 | Command::AdjustSensitivity { .. }
                 | Command::Trial { .. }
                 | Command::Begin { .. }
@@ -135,6 +140,78 @@ impl<B: Backend> Worker<B> {
         }
         match &r.command {
             Command::List => Ok(Response::Devices(self.backend.list()?)),
+            Command::ReadCurrentSettings => {
+                if !self.valid {
+                    return Err(fail(
+                        "A fresh native baseline is required for current settings read",
+                    ));
+                }
+                let baseline = self
+                    .backend
+                    .baseline()
+                    .ok_or_else(|| fail("No native baseline"))?;
+                let identity = baseline.identity.clone();
+                let firmware = baseline.firmware.clone();
+                if !supports_raw_thresholds(&identity, &firmware) {
+                    return Err(fail(
+                        "Current settings require exact XRGB V1.0.48 / 0483:502a",
+                    ));
+                }
+                let target = self
+                    .attached_target
+                    .clone()
+                    .ok_or_else(|| fail("No attached target"))?;
+                if target.identity != identity {
+                    return Err(fail(
+                        "Current settings target differs from the native baseline",
+                    ));
+                }
+                let (raw, source) = match self.backend.read_raw_thresholds() {
+                    Ok(read) => read,
+                    Err(error) => {
+                        self.valid = false;
+                        return Err(error);
+                    }
+                };
+                if raw.identity != identity || raw.firmware != firmware {
+                    self.valid = false;
+                    let mut failure = fail("Raw threshold reply differs from the owned baseline");
+                    failure.raw_reports = raw
+                        .raw_reports()
+                        .iter()
+                        .map(|report| report.to_vec())
+                        .collect();
+                    return Err(failure);
+                }
+                let (calibration, calibration_source) = match self.backend.read_calibration_values()
+                {
+                    Ok(read) => read,
+                    Err(error) => {
+                        self.valid = false;
+                        return Err(error);
+                    }
+                };
+                if calibration.identity != identity
+                    || calibration.firmware != firmware
+                    || calibration_source != source
+                {
+                    self.valid = false;
+                    let mut failure =
+                        fail("Calibration reply differs from the owned baseline or source");
+                    failure.raw_reports = calibration
+                        .raw_reports()
+                        .iter()
+                        .map(|report| report.to_vec())
+                        .collect();
+                    return Err(failure);
+                }
+                Ok(Response::CurrentSettings {
+                    raw,
+                    calibration,
+                    target,
+                    source,
+                })
+            }
             Command::ReadRawThresholds => {
                 if !self.valid {
                     return Err(fail(
@@ -179,6 +256,53 @@ impl<B: Backend> Worker<B> {
                     return Err(failure);
                 }
                 Ok(Response::RawThresholds {
+                    snapshot,
+                    target,
+                    source,
+                })
+            }
+            Command::ReadCalibrationValues => {
+                if !self.valid {
+                    return Err(fail(
+                        "A fresh native baseline is required for calibration value read",
+                    ));
+                }
+                let baseline = self
+                    .backend
+                    .baseline()
+                    .ok_or_else(|| fail("No native baseline"))?;
+                let identity = baseline.identity.clone();
+                let firmware = baseline.firmware.clone();
+                if !supports_raw_thresholds(&identity, &firmware) {
+                    return Err(fail(
+                        "Calibration values require exact XRGB V1.0.48 / 0483:502a",
+                    ));
+                }
+                let target = self
+                    .attached_target
+                    .clone()
+                    .ok_or_else(|| fail("No attached calibration target"))?;
+                if target.identity != identity {
+                    return Err(fail("Calibration target differs from the native baseline"));
+                }
+                let (snapshot, source) = match self.backend.read_calibration_values() {
+                    Ok(read) => read,
+                    Err(error) => {
+                        self.valid = false;
+                        return Err(error);
+                    }
+                };
+                if snapshot.identity != identity || snapshot.firmware != firmware {
+                    self.valid = false;
+                    let mut failure = fail("Calibration reply differs from the owned baseline");
+                    failure.raw_reports = snapshot
+                        .raw_reports()
+                        .iter()
+                        .map(|report| report.to_vec())
+                        .collect();
+                    return Err(failure);
+                }
+                Ok(Response::CalibrationValues {
                     snapshot,
                     target,
                     source,
@@ -335,6 +459,21 @@ impl Backend for NativeBackend {
             }
         }
     }
+    fn read_calibration_values(
+        &mut self,
+    ) -> Result<(CalibrationValues, RawThresholdSource), Failure> {
+        if self.baseline.is_none() {
+            return Err(Failure::from("No current native baseline".to_string()));
+        }
+        match self.session()?.read_calibration_values() {
+            Ok(snapshot) => Ok((snapshot, RawThresholdSource::Device)),
+            Err(error) => {
+                self.baseline = None;
+                self.session = None;
+                Err(error.into())
+            }
+        }
+    }
     fn adjust_sensitivity(
         &mut self,
         backup: &Path,
@@ -352,6 +491,17 @@ impl Backend for NativeBackend {
         result.map(|r| r.status).map_err(Into::into)
     }
     fn trial(&mut self, s: Selection, backup: &Path) -> Result<Response, Failure> {
+        let from = s
+            .from
+            .filter(|&p| p < 66)
+            .ok_or_else(|| Failure::from("Select a physical key before applying".to_string()))?;
+        let to = if s.mode == Mode::Swap {
+            Some(s.to_position.filter(|&p| p < 66).ok_or_else(|| {
+                Failure::from("Select a swap destination before applying".to_string())
+            })?)
+        } else {
+            None
+        };
         let b = self
             .baseline
             .as_ref()
@@ -361,13 +511,10 @@ impl Backend for NativeBackend {
             .as_mut()
             .ok_or_else(|| Failure::from("No native Session".to_string()))?;
         let result = match s.mode {
-            Mode::Reassign => session.trial_single_key(b, s.layer * 66 + s.from, s.to_code, backup),
-            Mode::Swap => session.trial_swap(
-                b,
-                s.layer * 66 + s.from,
-                s.layer * 66 + s.to_position,
-                backup,
-            ),
+            Mode::Reassign => session.trial_single_key(b, s.layer * 66 + from, s.to_code, backup),
+            Mode::Swap => {
+                session.trial_swap(b, s.layer * 66 + from, s.layer * 66 + to.unwrap(), backup)
+            }
         }?;
         Ok(Response::Applied {
             profile: result.profile,
@@ -499,6 +646,32 @@ impl Backend for DemoBackend {
         )?;
         Ok((snapshot, RawThresholdSource::Simulation))
     }
+    fn read_calibration_values(
+        &mut self,
+    ) -> Result<(CalibrationValues, RawThresholdSource), Failure> {
+        let profile = self
+            .profile
+            .as_ref()
+            .ok_or_else(|| Failure::from("Read the demo first".to_string()))?;
+        let reports = (0..11)
+            .map(|row| {
+                let mut report = [0; 64];
+                report[1] = 0xdc;
+                report[2] = row + 1;
+                report[3] = 2;
+                for column in 0..6 {
+                    report[4 + column] = row * 6 + column as u8 + 50;
+                }
+                report
+            })
+            .collect();
+        let snapshot = CalibrationValues::from_reports(
+            profile.identity.clone(),
+            profile.firmware.clone(),
+            reports,
+        )?;
+        Ok((snapshot, RawThresholdSource::Simulation))
+    }
     fn adjust_sensitivity(
         &mut self,
         _: &Path,
@@ -568,6 +741,8 @@ impl Backend for DemoBackend {
             position,
             before: Some((0..66).collect()),
             after: None,
+            t_before: Some((0..66).map(|index| index + 50).collect()),
+            t_after: None,
         });
         s.lock_may_have_been_sent = true;
         self.status = Some(s.clone());
@@ -590,6 +765,9 @@ impl Backend for DemoBackend {
             let mut after = held.before.clone().unwrap();
             after[held.position] = after[held.position].saturating_add(1);
             held.after = Some(after);
+            let mut t_after = held.t_before.clone().unwrap();
+            t_after[held.position] = t_after[held.position].saturating_add(1);
+            held.t_after = Some(t_after);
         }
         s.settings_verified = true;
         s.lighting_verified = true;
@@ -606,6 +784,7 @@ pub struct ChannelPort {
     pub receiver: mpsc::Receiver<Event>,
     join: Option<JoinHandle<()>>,
 }
+
 impl Port for ChannelPort {
     fn send(&mut self, r: Request) -> Result<(), String> {
         self.sender
@@ -656,5 +835,76 @@ fn run<B: Backend>(
         if quit {
             break;
         }
+    }
+}
+
+#[cfg(test)]
+mod calibration_value_routing_tests {
+    use super::*;
+
+    #[test]
+    fn mode_two_read_is_owned_read_only_and_rejects_wrong_target_or_generation() {
+        let mut worker = Worker::new(DemoBackend::default());
+        let read = worker.route(Request {
+            ticket: Ticket {
+                generation: 1,
+                operation: 1,
+            },
+            command: Command::Read {
+                path: "demo://keyboard".into(),
+            },
+            target: None,
+        });
+        let profile = match read.response {
+            Response::Read { profile, .. } => profile,
+            other => panic!("unexpected read response: {other:?}"),
+        };
+        let target = Target {
+            path: "demo://keyboard".into(),
+            product: "NIZ keyboard".into(),
+            identity: profile.identity,
+        };
+        let wrong = worker.route(Request {
+            ticket: Ticket {
+                generation: 1,
+                operation: 2,
+            },
+            command: Command::ReadCalibrationValues,
+            target: Some(Target {
+                path: "another keyboard".into(),
+                ..target.clone()
+            }),
+        });
+        assert!(matches!(wrong.response, Response::Error(_)));
+        let good = worker.route(Request {
+            ticket: Ticket {
+                generation: 1,
+                operation: 3,
+            },
+            command: Command::ReadCalibrationValues,
+            target: Some(target.clone()),
+        });
+        match good.response {
+            Response::CalibrationValues {
+                snapshot,
+                target: actual,
+                source,
+            } => {
+                assert_eq!(actual, target);
+                assert_eq!(source, RawThresholdSource::Simulation);
+                assert_eq!(snapshot.value_for_position(30), Some(63));
+                assert_eq!(snapshot.raw_reports().len(), 11);
+            }
+            other => panic!("unexpected calibration response: {other:?}"),
+        }
+        let stale = worker.route(Request {
+            ticket: Ticket {
+                generation: 0,
+                operation: 4,
+            },
+            command: Command::ReadCalibrationValues,
+            target: Some(target),
+        });
+        assert!(matches!(stale.response, Response::Error(_)));
     }
 }

@@ -543,6 +543,13 @@ fn active_sensitivity_ownership_blocks_every_public_read_and_other_mutation() {
 fn retained_calibration_owner_cannot_be_replaced_by_sensitivity() {
     let mut steps = script(24, false);
     steps.truncate(7);
+    steps.push(version(&profile()));
+    let mut dc2 = dc(false);
+    dc2.request[2] = 2;
+    for (_, row) in &mut dc2.replies {
+        row[3] = 2;
+    }
+    steps.push(dc2);
     steps.push(step(0xd9, 0, vec![]));
     let (mut session, state) = setup(steps);
     let baseline = session.read_baseline().unwrap();

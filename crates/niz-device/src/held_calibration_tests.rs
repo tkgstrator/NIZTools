@@ -28,9 +28,11 @@ struct State {
     time: u64,
     locked: bool,
     current: u8,
+    current_mode: u8,
     read_index: usize,
     cancel_read: Option<usize>,
     cancel_op: Option<u8>,
+    cancel_mode: Option<u8>,
     cancel_output: Option<u8>,
     cancel: Option<Arc<AtomicBool>>,
     sleeps: Vec<(u64, bool)>,
@@ -53,6 +55,11 @@ fn step(op: u8, replies: Vec<Vec<u8>>) -> Step {
 fn dc(rows: Vec<Vec<u8>>) -> Step {
     let mut s = step(0xdc, rows);
     s.request[2] = 1;
+    s
+}
+fn dc2(rows: Vec<Vec<u8>>) -> Step {
+    let mut s = step(0xdc, rows);
+    s.request[2] = 2;
     s
 }
 fn unlock() -> Step {
@@ -102,6 +109,7 @@ impl Transport for Script {
             "new command while earlier replies queued"
         );
         s.current = report[1];
+        s.current_mode = report[2];
         s.read_index = 0;
         if report[1] == 0xd9 {
             s.locked = report[2] == 0;
@@ -121,7 +129,10 @@ impl Transport for Script {
         let locked = s.locked;
         s.reads.push((current, locked));
         s.read_index += 1;
-        if s.cancel_read == Some(s.read_index) && current == s.cancel_op.unwrap_or(0xdc) {
+        if s.cancel_read == Some(s.read_index)
+            && current == s.cancel_op.unwrap_or(0xdc)
+            && s.cancel_mode.is_none_or(|mode| mode == s.current_mode)
+        {
             s.cancel.as_ref().unwrap().store(true, Ordering::Release);
         }
         match s.queue.pop_front() {
@@ -189,6 +200,21 @@ fn rows() -> Vec<Vec<u8>> {
         })
         .collect()
 }
+fn t_rows() -> Vec<Vec<u8>> {
+    rows()
+        .into_iter()
+        .map(|mut row| {
+            row[3] = 2;
+            for value in &mut row[4..10] {
+                *value += 100;
+            }
+            row
+        })
+        .collect()
+}
+fn t_values() -> Vec<u8> {
+    PHYSICAL_VALUES.iter().map(|value| value + 100).collect()
+}
 fn prepare_steps() -> Vec<Step> {
     let p = profile();
     let mut steps = profile_steps(&p);
@@ -196,6 +222,8 @@ fn prepare_steps() -> Vec<Step> {
     steps.push(rgb_step(false));
     steps.push(step(0xf9, vec![version(&p)]));
     steps.push(dc(rows()));
+    steps.push(step(0xf9, vec![version(&p)]));
+    steps.push(dc2(t_rows()));
     steps.push(step(0xd9, vec![]));
     steps
 }
@@ -205,6 +233,8 @@ fn finish_steps(post_rows: Vec<Vec<u8>>, post_profile: Profile, changed_rgb: boo
         step(0xdd, vec![command(0xde).to_vec()]),
         step(0xf9, vec![version(&p)]),
         dc(post_rows),
+        step(0xf9, vec![version(&p)]),
+        dc2(t_rows()),
         unlock(),
     ];
     steps.extend(profile_steps(&post_profile));
@@ -237,6 +267,8 @@ fn capture(status: &CalibrationStatus, which: &str) -> Option<Vec<u8>> {
     match which {
         "before" => held.before.clone(),
         "after" => held.after.clone(),
+        "t_before" => held.t_before.clone(),
+        "t_after" => held.t_after.clone(),
         _ => panic!("unknown capture"),
     }
 }
@@ -271,6 +303,8 @@ fn held_only_captures_every_physical_position_and_keeps_post_dc_locked_until_one
     assert!(!prepared.release_attempted && !prepared.release_sent && !prepared.release_completed);
     assert_eq!(capture(&prepared, "before"), Some(PHYSICAL_VALUES.to_vec()));
     assert_eq!(capture(&prepared, "after"), None);
+    assert_eq!(capture(&prepared, "t_before"), Some(t_values()));
+    assert_eq!(capture(&prepared, "t_after"), None);
     let sent = state.borrow().sent.clone();
     assert!(session.read_raw_thresholds().is_err());
     assert_eq!(state.borrow().sent, sent);
@@ -284,6 +318,8 @@ fn held_only_captures_every_physical_position_and_keeps_post_dc_locked_until_one
         capture(&result.status, "after"),
         Some(PHYSICAL_VALUES.to_vec())
     );
+    assert_eq!(capture(&result.status, "t_before"), Some(t_values()));
+    assert_eq!(capture(&result.status, "t_after"), Some(t_values()));
     assert!(result.status.settings_verified && result.status.lighting_verified);
     assert_terminal_output(&state.borrow());
     let state = state.borrow();
@@ -292,9 +328,9 @@ fn held_only_captures_every_physical_position_and_keeps_post_dc_locked_until_one
         .iter()
         .filter(|(op, _)| *op == 0xdc)
         .collect::<Vec<_>>();
-    assert_eq!(dc_reads.len(), 22);
-    assert!(dc_reads[..11].iter().all(|(_, locked)| !*locked));
-    assert!(dc_reads[11..].iter().all(|(_, locked)| *locked));
+    assert_eq!(dc_reads.len(), 44);
+    assert!(dc_reads[..22].iter().all(|(_, locked)| !*locked));
+    assert!(dc_reads[22..].iter().all(|(_, locked)| *locked));
 }
 #[test]
 fn held_comparison_distinguishes_target_and_neighbor_changes_with_literal_physical_values() {
@@ -320,6 +356,44 @@ fn held_comparison_distinguishes_target_and_neighbor_changes_with_literal_physic
     }
 }
 #[test]
+fn held_calibration_reports_selected_and_other_key_t_changes_without_conflating_r() {
+    let mut post_t = t_rows();
+    post_t[13 / 6][4 + 13 % 6] = 180; // Physical #30: A.
+    post_t[59 / 6][4 + 59 % 6] = 190; // Physical #65: another key.
+    let mut steps = prepare_steps();
+    steps.extend(finish_steps(rows(), profile(), false));
+    // The first DC2 is the baseline. The postflight DC2 is the second one.
+    let post_t_index = steps
+        .iter()
+        .rposition(|step| step.request[1] == 0xdc && step.request[2] == 2)
+        .unwrap();
+    steps[post_t_index] = dc2(post_t);
+    let (mut session, state) = setup(steps);
+    let baseline = session.read_baseline().unwrap();
+    let dir = tempfile::tempdir().unwrap();
+    begin(&mut session, &baseline, dir.path(), 30).unwrap();
+    session.calibrate_held_keys().unwrap();
+    let result = session.finish_calibration().unwrap();
+    let held = result.status.held_key.unwrap();
+    assert_eq!(held.before, Some(PHYSICAL_VALUES.to_vec()));
+    assert_eq!(held.after, Some(PHYSICAL_VALUES.to_vec()));
+    let before = t_values();
+    let mut after = before.clone();
+    after[30] = 180;
+    after[65] = 190;
+    assert_eq!(held.t_before, Some(before.clone()));
+    assert_eq!(held.t_after, Some(after.clone()));
+    assert_eq!(
+        before
+            .iter()
+            .zip(after.iter())
+            .filter(|(a, b)| a != b)
+            .count(),
+        2
+    );
+    assert_terminal_output(&state.borrow());
+}
+#[test]
 fn complete_threshold_observations_survive_later_settings_or_lighting_failure() {
     for rgb in [false, true] {
         let mut p = profile();
@@ -341,9 +415,11 @@ fn complete_threshold_observations_survive_later_settings_or_lighting_failure() 
         assert_eq!(status.unlock, UnlockOutcome::Sent);
         assert!(status.held_completed);
         assert_eq!(capture(&status, "before"), Some(PHYSICAL_VALUES.to_vec()));
+        assert_eq!(capture(&status, "t_before"), Some(t_values()));
         let mut expected = PHYSICAL_VALUES.to_vec();
         expected[30] = 201;
         assert_eq!(capture(&status, "after"), Some(expected));
+        assert_eq!(capture(&status, "t_after"), Some(t_values()));
         assert!(!status.settings_verified && !status.lighting_verified);
         assert_terminal_output(&state.borrow());
         assert!(err.message.contains("cannot be restored"));
@@ -374,6 +450,8 @@ fn incomplete_malformed_late_and_extra_post_capture_never_publish_after_and_sett
         let status = err.calibration.unwrap();
         assert_eq!(capture(&status, "before"), Some(PHYSICAL_VALUES.to_vec()));
         assert_eq!(capture(&status, "after"), None);
+        assert_eq!(capture(&status, "t_before"), Some(t_values()));
+        assert_eq!(capture(&status, "t_after"), None);
         assert!(status.held_sent && status.held_completed);
         assert_eq!(status.unlock, UnlockOutcome::Sent);
         assert!(err.message.contains("passive settling"));
@@ -395,6 +473,7 @@ fn failed_pre_capture_cannot_lock_or_dispatch_dd_and_does_not_publish_partial_va
     let err = begin(&mut session, &b, dir.path(), 30).unwrap_err();
     let status = err.calibration.unwrap();
     assert_eq!(capture(&status, "before"), None);
+    assert_eq!(capture(&status, "t_before"), None);
     assert_eq!(status.unlock, UnlockOutcome::NotAttempted);
     assert!(!status.lock_may_have_been_sent);
     assert!(
@@ -410,12 +489,60 @@ fn failed_pre_capture_cannot_lock_or_dispatch_dd_and_does_not_publish_partial_va
     );
 }
 #[test]
+fn failed_pre_t_capture_cannot_lock_or_claim_complete_t_values() {
+    let mut steps = prepare_steps();
+    steps[8].replies.truncate(5);
+    let (mut session, state) = setup(steps);
+    let baseline = session.read_baseline().unwrap();
+    let dir = tempfile::tempdir().unwrap();
+    let error = begin(&mut session, &baseline, dir.path(), 30).unwrap_err();
+    let status = error.calibration.unwrap();
+    assert_eq!(status.phase, CalibrationPhase::Failed);
+    assert_eq!(capture(&status, "before"), Some(PHYSICAL_VALUES.to_vec()));
+    assert_eq!(capture(&status, "t_before"), None);
+    assert!(!status.lock_may_have_been_sent);
+    assert_eq!(status.unlock, UnlockOutcome::NotAttempted);
+    assert!(
+        state
+            .borrow()
+            .sent
+            .iter()
+            .all(|(_, r)| r[1] != 0xd9 && r[1] != 0xdd)
+    );
+    assert!(error.message.contains("passive settling"));
+}
+#[test]
+fn failed_post_t_capture_does_not_claim_complete_t_values_and_unlocks_once() {
+    let mut steps = prepare_steps();
+    steps.extend(finish_steps(rows(), profile(), false));
+    let post_t = steps
+        .iter()
+        .rposition(|step| step.request[1] == 0xdc && step.request[2] == 2)
+        .unwrap();
+    steps[post_t].replies[4].as_mut().unwrap().1[3] = 1;
+    let (mut session, state) = setup(steps);
+    let baseline = session.read_baseline().unwrap();
+    let dir = tempfile::tempdir().unwrap();
+    begin(&mut session, &baseline, dir.path(), 30).unwrap();
+    session.calibrate_held_keys().unwrap();
+    let error = session.finish_calibration().unwrap_err();
+    let status = error.calibration.unwrap();
+    assert_eq!(status.phase, CalibrationPhase::Failed);
+    assert!(status.held_completed);
+    assert_eq!(capture(&status, "t_before"), Some(t_values()));
+    assert_eq!(capture(&status, "t_after"), None);
+    assert_eq!(status.unlock, UnlockOutcome::Sent);
+    assert!(error.message.contains("passive settling"));
+    assert_terminal_output(&state.borrow());
+}
+#[test]
 fn cancellation_during_pre_and_post_dc_completes_the_bounded_reader_before_cleanup() {
     for post in [false, true] {
         let mut steps = prepare_steps();
         if post {
             steps.extend(finish_steps(rows(), profile(), false));
-            steps.truncate(12);
+            steps.truncate(13);
+            steps.push(unlock());
         } else {
             steps.truncate(7);
         }
@@ -440,10 +567,15 @@ fn cancellation_during_pre_and_post_dc_completes_the_bounded_reader_before_clean
             capture(&status, "after"),
             post.then(|| PHYSICAL_VALUES.to_vec())
         );
+        assert_eq!(
+            capture(&status, "t_before"),
+            if post { Some(t_values()) } else { None }
+        );
+        assert_eq!(capture(&status, "t_after"), None);
         let state = state.borrow();
         assert_eq!(
             state.reads.iter().filter(|(op, _)| *op == 0xdc).count(),
-            if post { 22 } else { 11 }
+            if post { 33 } else { 11 }
         );
         assert!(state.unexpected.is_empty());
         if post {
@@ -452,6 +584,99 @@ fn cancellation_during_pre_and_post_dc_completes_the_bounded_reader_before_clean
             assert!(!state.sent.iter().any(|(_, r)| matches!(r[1], 0xd9 | 0xdd)));
         }
     }
+}
+#[test]
+fn cancellation_during_pre_dc2_finishes_t_snapshot_without_locking() {
+    let mut steps = prepare_steps();
+    steps.truncate(9); // Through DC2; D9 must never be requested.
+    let (mut session, state) = setup(steps);
+    let baseline = session.read_baseline().unwrap();
+    let dir = tempfile::tempdir().unwrap();
+    {
+        let mut script = state.borrow_mut();
+        script.cancel_read = Some(3);
+        script.cancel_op = Some(0xdc);
+        script.cancel_mode = Some(2);
+    }
+    let error = begin(&mut session, &baseline, dir.path(), 30).unwrap_err();
+    let status = error.calibration.unwrap();
+    assert_eq!(status.phase, CalibrationPhase::Aborted);
+    assert!(status.cancellation_requested);
+    assert_eq!(status.unlock, UnlockOutcome::NotAttempted);
+    assert!(!status.lock_may_have_been_sent);
+    assert_eq!(capture(&status, "before"), Some(PHYSICAL_VALUES.to_vec()));
+    assert_eq!(capture(&status, "t_before"), Some(t_values()));
+    assert_eq!(capture(&status, "after"), None);
+    assert_eq!(capture(&status, "t_after"), None);
+    let script = state.borrow();
+    assert_eq!(
+        script.reads.iter().filter(|(op, _)| *op == 0xdc).count(),
+        22
+    );
+    assert_eq!(
+        status
+            .trace
+            .iter()
+            .filter(|packet| {
+                packet.direction == crate::TraceDirection::Input
+                    && packet.bytes.get(1) == Some(&0xdc)
+                    && packet.bytes.get(3) == Some(&2)
+            })
+            .count(),
+        11
+    );
+    assert!(script.unexpected.is_empty());
+    assert!(
+        script
+            .sent
+            .iter()
+            .all(|(_, report)| report[1] != 0xd9 && report[1] != 0xdd)
+    );
+}
+#[test]
+fn cancellation_during_post_dc2_finishes_t_snapshot_then_unlocks_once() {
+    let mut steps = prepare_steps();
+    steps.extend(finish_steps(rows(), profile(), false));
+    steps.truncate(16); // Through the one cleanup unlock, without postflight commands.
+    let (mut session, state) = setup(steps);
+    let baseline = session.read_baseline().unwrap();
+    let dir = tempfile::tempdir().unwrap();
+    begin(&mut session, &baseline, dir.path(), 30).unwrap();
+    session.calibrate_held_keys().unwrap();
+    {
+        let mut script = state.borrow_mut();
+        script.cancel_read = Some(3);
+        script.cancel_op = Some(0xdc);
+        script.cancel_mode = Some(2);
+    }
+    let error = session.finish_calibration().unwrap_err();
+    let status = error.calibration.unwrap();
+    assert_eq!(status.phase, CalibrationPhase::Aborted);
+    assert!(status.cancellation_requested && status.held_completed);
+    assert_eq!(status.unlock, UnlockOutcome::Sent);
+    assert_eq!(capture(&status, "before"), Some(PHYSICAL_VALUES.to_vec()));
+    assert_eq!(capture(&status, "t_before"), Some(t_values()));
+    assert_eq!(capture(&status, "after"), Some(PHYSICAL_VALUES.to_vec()));
+    assert_eq!(capture(&status, "t_after"), Some(t_values()));
+    let script = state.borrow();
+    assert_eq!(
+        script.reads.iter().filter(|(op, _)| *op == 0xdc).count(),
+        44
+    );
+    assert_eq!(
+        status
+            .trace
+            .iter()
+            .filter(|packet| {
+                packet.direction == crate::TraceDirection::Input
+                    && packet.bytes.get(1) == Some(&0xdc)
+                    && packet.bytes.get(3) == Some(&2)
+            })
+            .count(),
+        22
+    );
+    assert_terminal_output(&script);
+    assert_eq!(script.sent.last().unwrap().1, unlock().request);
 }
 #[test]
 fn invalid_physical_position_is_rejected_before_preparation_traffic() {
@@ -484,6 +709,8 @@ fn held_only_unknown_dd_delivery_retains_before_without_cleanup_retry_or_false_c
         assert!(status.held_attempted && !status.held_sent && !status.held_completed);
         assert_eq!(capture(&status, "before"), Some(PHYSICAL_VALUES.to_vec()));
         assert_eq!(capture(&status, "after"), None);
+        assert_eq!(capture(&status, "t_before"), Some(t_values()));
+        assert_eq!(capture(&status, "t_after"), None);
         assert_eq!(status.unlock, UnlockOutcome::NotAttempted);
         assert!(err.began_write);
         assert!(err.message.contains("cannot be restored"));
@@ -520,9 +747,11 @@ fn held_only_late_malformed_and_timed_out_de_never_start_post_dc_and_unlock_once
         assert_eq!(status.unlock, UnlockOutcome::Sent);
         assert_eq!(capture(&status, "before"), Some(PHYSICAL_VALUES.to_vec()));
         assert_eq!(capture(&status, "after"), None);
+        assert_eq!(capture(&status, "t_before"), Some(t_values()));
+        assert_eq!(capture(&status, "t_after"), None);
         let state = state.borrow();
         assert_terminal_output(&state);
-        assert_eq!(state.sent.iter().filter(|(_, r)| r[1] == 0xdc).count(), 1);
+        assert_eq!(state.sent.iter().filter(|(_, r)| r[1] == 0xdc).count(), 2);
     }
 }
 #[test]
@@ -568,12 +797,14 @@ fn held_only_cancel_before_dd_after_dispatch_and_after_de_retains_exact_command_
         assert_eq!(status.unlock, UnlockOutcome::Sent);
         assert_eq!(capture(&status, "before"), Some(PHYSICAL_VALUES.to_vec()));
         assert_eq!(capture(&status, "after"), None);
+        assert_eq!(capture(&status, "t_before"), Some(t_values()));
+        assert_eq!(capture(&status, "t_after"), None);
         assert_eq!(status.held_attempted, stage > 0);
         assert_eq!(status.held_sent, stage > 0);
         assert_eq!(status.held_completed, stage == 3);
         let state = state.borrow();
         assert!(state.unexpected.is_empty());
-        assert_eq!(state.sent.iter().filter(|(_, r)| r[1] == 0xdc).count(), 1);
+        assert_eq!(state.sent.iter().filter(|(_, r)| r[1] == 0xdc).count(), 2);
         assert_eq!(
             state.sent.iter().filter(|(_, r)| r[1] == 0xdd).count(),
             usize::from(stage > 0)

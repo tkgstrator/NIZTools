@@ -1,5 +1,5 @@
 use niz_core::{DeviceIdentity, Profile, Report};
-use niz_device::{CalibrationStatus, DeviceDescriptor, RawThresholds};
+use niz_device::{CalibrationStatus, CalibrationValues, DeviceDescriptor, RawThresholds};
 use niz_gui::{
     editor::Selection,
     protocol::*,
@@ -12,7 +12,123 @@ use std::{
 struct Fake {
     profile: Profile,
     raw_calls: usize,
+    calibration_calls: usize,
     behavior: u8,
+}
+#[test]
+fn current_settings_reads_both_modes_once_with_one_target_and_source() {
+    let mut w = worker();
+    match w
+        .route(request(1, 2, Command::ReadCurrentSettings))
+        .response
+    {
+        Response::CurrentSettings {
+            raw,
+            calibration,
+            target,
+            source,
+        } => {
+            assert_eq!(raw.value_for_position(30), Some(13));
+            assert_eq!(calibration.value_for_position(30), Some(63));
+            assert_eq!(target.path, "device");
+            assert_eq!(source, RawThresholdSource::Device);
+        }
+        other => panic!("{other:?}"),
+    }
+    assert_eq!(w.backend.raw_calls, 1);
+    assert_eq!(w.backend.calibration_calls, 1);
+}
+
+#[test]
+fn current_settings_second_reader_failure_never_returns_a_partial_snapshot() {
+    let mut w = worker();
+    w.backend.behavior = 4;
+    assert!(matches!(
+        w.route(request(1, 2, Command::ReadCurrentSettings))
+            .response,
+        Response::Error(_)
+    ));
+    assert_eq!(w.backend.raw_calls, 1);
+    assert_eq!(w.backend.calibration_calls, 1);
+    w.backend.behavior = 0;
+    assert!(matches!(
+        w.route(request(1, 3, Command::ReadCurrentSettings))
+            .response,
+        Response::Error(_)
+    ));
+    assert_eq!(w.backend.raw_calls, 1);
+}
+
+#[test]
+fn current_settings_rejects_mismatched_sources_and_metadata() {
+    for behavior in [5, 6, 7] {
+        let mut w = worker();
+        w.backend.behavior = behavior;
+        assert!(
+            matches!(
+                w.route(request(1, 2, Command::ReadCurrentSettings))
+                    .response,
+                Response::Error(_)
+            ),
+            "behavior {behavior}"
+        );
+        assert_eq!(w.backend.raw_calls, 1);
+        assert_eq!(w.backend.calibration_calls, 1);
+    }
+}
+
+#[test]
+fn current_settings_rejects_wrong_ticket_target_or_unsupported_baseline_before_io() {
+    for case in 0..6 {
+        let mut w = worker();
+        let mut r = request(1, 2, Command::ReadCurrentSettings);
+        match case {
+            0 => r.ticket.generation = 0,
+            1 => r.ticket.operation = 1,
+            2 => r.target = None,
+            3 => r.target.as_mut().unwrap().path = "other".into(),
+            4 => w.backend.profile.identity.product_id = 0x512a,
+            _ => w.backend.profile.firmware = "other".into(),
+        }
+        assert!(
+            matches!(w.route(r).response, Response::Error(_)),
+            "case {case}"
+        );
+        assert_eq!(w.backend.raw_calls, 0, "case {case}");
+        assert_eq!(w.backend.calibration_calls, 0, "case {case}");
+    }
+}
+
+#[test]
+fn current_settings_demo_returns_both_generated_modes() {
+    let mut w = Worker::new(DemoBackend::default());
+    assert!(matches!(
+        w.route(request(
+            1,
+            1,
+            Command::Read {
+                path: "device".into()
+            }
+        ))
+        .response,
+        Response::Read { .. }
+    ));
+    match w
+        .route(request(1, 2, Command::ReadCurrentSettings))
+        .response
+    {
+        Response::CurrentSettings {
+            raw,
+            calibration,
+            source,
+            ..
+        } => {
+            assert_eq!(source, RawThresholdSource::Simulation);
+            assert_eq!(raw.value_for_position(30), Some(13));
+            assert_eq!(calibration.value_for_position(30), Some(63));
+        }
+        other => panic!("{other:?}"),
+    }
 }
 fn profile() -> Profile {
     let mut p = Profile::demo();
@@ -62,6 +178,42 @@ impl Backend for Fake {
         }
         Ok((raw, RawThresholdSource::Device))
     }
+    fn read_calibration_values(
+        &mut self,
+    ) -> Result<(CalibrationValues, RawThresholdSource), Failure> {
+        self.calibration_calls += 1;
+        if self.behavior == 4 {
+            return Err("second reader failed".to_string().into());
+        }
+        let p = profile();
+        let rows: Vec<Report> = (0..11)
+            .map(|row| {
+                let mut r = [0; 64];
+                r[1] = 0xdc;
+                r[2] = row + 1;
+                r[3] = 2;
+                for col in 0..6 {
+                    r[4 + col] = row * 6 + col as u8 + 50;
+                }
+                r
+            })
+            .collect();
+        let mut snapshot = CalibrationValues::from_reports(p.identity, p.firmware, rows)?;
+        if self.behavior == 6 {
+            snapshot.firmware = "other firmware".into();
+        }
+        if self.behavior == 7 {
+            snapshot.identity.product_id = 0x512a;
+        }
+        Ok((
+            snapshot,
+            if self.behavior == 5 {
+                RawThresholdSource::Simulation
+            } else {
+                RawThresholdSource::Device
+            },
+        ))
+    }
     fn adjust_sensitivity(
         &mut self,
         _: &Path,
@@ -106,6 +258,7 @@ fn worker() -> Worker<Fake> {
     let mut w = Worker::new(Fake {
         profile: profile(),
         raw_calls: 0,
+        calibration_calls: 0,
         behavior: 0,
     });
     assert!(matches!(
@@ -120,6 +273,32 @@ fn worker() -> Worker<Fake> {
         Response::Read { .. }
     ));
     w
+}
+#[test]
+fn calibration_worker_routes_mode_two_once_for_exact_target() {
+    let mut w = worker();
+    let mut wrong = request(1, 2, Command::ReadCalibrationValues);
+    wrong.target.as_mut().unwrap().path = "other".into();
+    assert!(matches!(w.route(wrong).response, Response::Error(_)));
+    assert_eq!(w.backend.calibration_calls, 0);
+    match w
+        .route(request(1, 3, Command::ReadCalibrationValues))
+        .response
+    {
+        Response::CalibrationValues {
+            snapshot,
+            target,
+            source,
+        } => {
+            assert_eq!(target.path, "device");
+            assert_eq!(source, RawThresholdSource::Device);
+            assert_eq!(snapshot.value_for_position(30), Some(63));
+            assert_eq!(snapshot.raw_reports().len(), 11);
+        }
+        other => panic!("{other:?}"),
+    }
+    assert_eq!(w.backend.calibration_calls, 1);
+    assert_eq!(w.backend.raw_calls, 0);
 }
 #[test]
 fn raw_worker_calls_one_reader_and_returns_the_owned_target() {

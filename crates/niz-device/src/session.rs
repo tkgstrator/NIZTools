@@ -316,6 +316,82 @@ impl Session {
             error
         })
     }
+    /// Read the pinned firmware's RAM T calibration table via a fresh F9 and
+    /// eleven DC mode-2 responses. This does not read nonvolatile storage.
+    /// The getter can reset active scan compensation; failed DC delivery is
+    /// passively settled while the session owns its transport lock.
+    pub fn read_calibration_values(&mut self) -> Result<crate::CalibrationValues> {
+        self.ready()?;
+        if !crate::supports_raw_thresholds(&self.identity, EXPERIMENTAL_FIRMWARE) {
+            return Err(Error::new(
+                "calibration values require exact 0483:502a 008c:1 identity",
+            ));
+        }
+        let result = self.calibration_values_inner();
+        self.poison(result)
+    }
+    pub(crate) fn calibration_values_inner(&mut self) -> Result<crate::CalibrationValues> {
+        let deadline = self.io.now_ms().saturating_add(30_000);
+        let (firmware, version_report) = self.version_capture_inner()?;
+        let mut evidence = vec![version_report.to_vec()];
+        let mut dc_attempted = false;
+        let transaction = (|| {
+            if !crate::supports_raw_thresholds(&self.identity, &firmware) {
+                return Err(Error::new(
+                    "fresh F9 firmware is not qualified for calibration values",
+                ));
+            }
+            if self.last_read.as_ref().is_some_and(|profile| {
+                profile.identity != self.identity || profile.firmware != firmware
+            }) {
+                return Err(Error::new(
+                    "fresh F9 identity/firmware differs from the retained baseline",
+                ));
+            }
+            if let Some(extra) = self.io.queued_input().map_err(Error::new)? {
+                self.trace(crate::TraceDirection::Input, extra.clone(), None);
+                evidence.push(extra);
+                return Err(Error::new(
+                    "unexpected queued input after fresh F9; DC not sent",
+                ));
+            }
+            if self.io.now_ms() >= deadline {
+                return Err(Error::new("stream exceeded 30-second deadline"));
+            }
+            let mut request = command(0xdc);
+            request[2] = 2;
+            dc_attempted = true;
+            self.send(&request)?;
+            let mut reports = Vec::with_capacity(11);
+            let mut decoder = niz_core::CalibrationValueDecoder::default();
+            for _ in 0..11 {
+                let report = self.receive(deadline)?;
+                evidence.push(report.to_vec());
+                decoder.push(&report)?;
+                reports.push(report);
+            }
+            if let Some(extra) = self.io.queued_input().map_err(Error::new)? {
+                self.trace(crate::TraceDirection::Input, extra.clone(), None);
+                evidence.push(extra);
+                return Err(Error::new(
+                    "unexpected queued input after calibration value rows",
+                ));
+            }
+            if self.io.now_ms() > deadline {
+                return Err(Error::new("stream exceeded 30-second deadline"));
+            }
+            decoder.finish()?;
+            crate::CalibrationValues::from_reports(self.identity.clone(), firmware, reports)
+        })();
+        transaction.map_err(|mut error: Error| {
+            evidence.append(&mut error.raw_reports);
+            error.raw_reports = evidence;
+            if dc_attempted {
+                self.settle_failed_raw_threshold_read(&mut error);
+            }
+            error
+        })
+    }
     fn settle_failed_raw_threshold_read(&mut self, error: &mut Error) {
         self.settle_failed_transaction_input(
             error,

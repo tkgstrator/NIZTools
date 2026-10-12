@@ -1,5 +1,5 @@
 use niz_core::{DeviceIdentity, Profile, Report};
-use niz_device::RawThresholds;
+use niz_device::{CalibrationValues, RawThresholds};
 use niz_gui::{
     controller::{Activation, Controller, ReadChoice},
     protocol::*,
@@ -42,6 +42,22 @@ fn data() -> RawThresholds {
         .collect();
     RawThresholds::from_reports(p.identity, p.firmware, reports).unwrap()
 }
+fn calibration_data() -> CalibrationValues {
+    let p = profile();
+    let reports: Vec<Report> = (0..11)
+        .map(|row| {
+            let mut r = [0; 64];
+            r[1] = 0xdc;
+            r[2] = row + 1;
+            r[3] = 2;
+            for col in 0..6 {
+                r[4 + col] = (row as usize * 6 + col + 50) as u8;
+            }
+            r
+        })
+        .collect();
+    CalibrationValues::from_reports(p.identity, p.firmware, reports).unwrap()
+}
 fn connected() -> Controller<Capture> {
     let mut c = Controller::new(Capture::default());
     c.read("device".into(), ReadChoice::Discard).unwrap();
@@ -53,6 +69,145 @@ fn connected() -> Controller<Capture> {
         },
     });
     c
+}
+#[test]
+fn current_settings_dispatches_once_and_publishes_both_with_identical_read_time() {
+    let mut c = connected();
+    let e = c.editor.as_mut().unwrap();
+    e.select_from(1);
+    e.choose_output(44);
+    e.edit().unwrap();
+    let draft = e.draft.clone();
+    let baseline = e.baseline.clone();
+    let undo = e.can_undo();
+    c.read_current_settings().unwrap();
+    assert!(matches!(
+        c.port.requests.last().unwrap().command,
+        Command::ReadCurrentSettings
+    ));
+    let ticket = c.pending.unwrap();
+    c.process(Event {
+        ticket,
+        response: Response::CurrentSettings {
+            raw: data(),
+            calibration: calibration_data(),
+            target: c.attached_target.clone().unwrap(),
+            source: RawThresholdSource::Device,
+        },
+    });
+    let r = c.raw_thresholds().unwrap();
+    let t = c.calibration_values().unwrap();
+    assert_eq!(r.read_at, t.read_at);
+    assert_eq!(r.snapshot.value_for_position(30), Some(13));
+    assert_eq!(t.snapshot.value_for_position(30), Some(63));
+    assert_eq!(c.editor.as_ref().unwrap().draft.records, draft.records);
+    assert_eq!(
+        c.editor.as_ref().unwrap().baseline.records,
+        baseline.records
+    );
+    assert_eq!(c.editor.as_ref().unwrap().can_undo(), undo);
+}
+
+#[test]
+fn current_settings_clears_both_old_snapshots_on_dispatch_and_failure() {
+    let mut c = connected();
+    c.read_current_settings().unwrap();
+    let response = Response::CurrentSettings {
+        raw: data(),
+        calibration: calibration_data(),
+        target: c.attached_target.clone().unwrap(),
+        source: RawThresholdSource::Device,
+    };
+    c.process(Event {
+        ticket: c.pending.unwrap(),
+        response,
+    });
+    assert!(c.raw_thresholds().is_some());
+    assert!(c.calibration_values().is_some());
+    c.read_current_settings().unwrap();
+    assert!(c.raw_thresholds().is_none());
+    assert!(c.calibration_values().is_none());
+    c.process(Event {
+        ticket: c.pending.unwrap(),
+        response: Response::Error("second read failed".to_string().into()),
+    });
+    assert!(c.raw_thresholds().is_none());
+    assert!(c.calibration_values().is_none());
+    assert!(!c.live);
+}
+
+#[test]
+fn individual_read_clears_both_sides_of_a_previous_combined_snapshot() {
+    for calibration_only in [false, true] {
+        let mut c = connected();
+        c.read_current_settings().unwrap();
+        c.process(Event {
+            ticket: c.pending.unwrap(),
+            response: Response::CurrentSettings {
+                raw: data(),
+                calibration: calibration_data(),
+                target: c.attached_target.clone().unwrap(),
+                source: RawThresholdSource::Device,
+            },
+        });
+        assert!(c.raw_thresholds().is_some());
+        assert!(c.calibration_values().is_some());
+
+        if calibration_only {
+            c.read_calibration_values().unwrap();
+        } else {
+            c.read_raw_thresholds().unwrap();
+        }
+        assert!(c.raw_thresholds().is_none());
+        assert!(c.calibration_values().is_none());
+    }
+}
+
+#[test]
+fn current_settings_rejects_wrong_ticket_target_or_metadata_without_partial_publication() {
+    for case in 0..5 {
+        let mut c = connected();
+        c.read_current_settings().unwrap();
+        let ticket = c.pending.unwrap();
+        let mut raw = data();
+        let mut calibration = calibration_data();
+        let mut target = c.attached_target.clone().unwrap();
+        match case {
+            0 => raw.firmware = "wrong".into(),
+            1 => calibration.firmware = "wrong".into(),
+            2 => target.path = "wrong".into(),
+            3 => c.editor.as_mut().unwrap().baseline.records[4][0][63] = 1,
+            _ => {}
+        }
+        if case == 4 {
+            c.process(Event {
+                ticket: Ticket {
+                    operation: ticket.operation + 1,
+                    ..ticket
+                },
+                response: Response::CurrentSettings {
+                    raw,
+                    calibration,
+                    target,
+                    source: RawThresholdSource::Device,
+                },
+            });
+            assert_eq!(c.pending, Some(ticket));
+        } else {
+            c.process(Event {
+                ticket,
+                response: Response::CurrentSettings {
+                    raw,
+                    calibration,
+                    target,
+                    source: RawThresholdSource::Device,
+                },
+            });
+            assert!(!c.live, "case {case}");
+        }
+        assert!(c.raw_thresholds().is_none(), "case {case}");
+        assert!(c.calibration_values().is_none(), "case {case}");
+    }
 }
 fn raw_response(c: &Controller<Capture>) -> Response {
     Response::RawThresholds {
@@ -74,6 +229,7 @@ fn install(c: &mut Controller<Capture>) {
 fn manual_raw_read_binds_target_and_preserves_editor_history() {
     let mut c = connected();
     let e = c.editor.as_mut().unwrap();
+    e.select_from(1);
     e.choose_output(44);
     e.edit().unwrap();
     let before = (
@@ -211,6 +367,7 @@ fn raw_snapshot_invalidates_on_connection_source_write_error_and_close() {
                 c.load(profile(), true).unwrap();
             }
             2 => {
+                c.editor.as_mut().unwrap().select_from(1);
                 c.editor.as_mut().unwrap().choose_output(44);
                 c.edit().unwrap();
                 c.trial("backup".into()).unwrap();

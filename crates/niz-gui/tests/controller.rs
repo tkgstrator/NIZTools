@@ -65,6 +65,7 @@ fn connected() -> Controller<FakePort> {
             cancel: Arc::new(AtomicBool::new(false)),
         },
     });
+    c.editor.as_mut().unwrap().select_from(1);
     c
 }
 #[test]
@@ -115,11 +116,12 @@ fn double_click_read_emits_one_request() {
 fn exact_trial_rejects_multiedit_padding_and_foreign_metadata() {
     let p = target();
     let mut e = Editor::new(p.clone());
+    e.select_from(1);
     e.selection.to_code = 43;
     e.edit().unwrap();
     assert!(exact_trial(&p, &e.draft, e.selection).is_ok());
     let saved = e.selection;
-    e.selection.from = 2;
+    e.selection.from = Some(2);
     e.selection.to_code = 44;
     e.edit().unwrap();
     assert!(exact_trial(&p, &e.draft, saved).is_err());
@@ -135,8 +137,8 @@ fn exact_trial_rejects_fn_columns_and_wrong_firmware() {
     let p = target();
     let mut e = Editor::new(p.clone());
     e.selection.mode = Mode::Swap;
-    e.selection.from = 54;
-    e.selection.to_position = 2;
+    e.selection.from = Some(54);
+    e.selection.to_position = Some(2);
     e.edit().unwrap();
     assert!(exact_trial(&p, &e.draft, e.selection).is_err());
     let mut other = p;
@@ -160,6 +162,7 @@ fn trial_sends_operands_and_exact_draft_once() {
 fn file_profile_never_grants_live_baseline() {
     let mut c = Controller::new(FakePort::default());
     c.load(target(), true).unwrap();
+    c.editor.as_mut().unwrap().select_from(1);
     c.editor.as_mut().unwrap().selection.to_code = 43;
     c.edit().unwrap();
     assert!(c.trial("backup".into()).is_err());
@@ -441,6 +444,7 @@ fn two_devices() -> Controller<FakePort> {
             cancel: Arc::new(AtomicBool::new(false)),
         },
     });
+    c.editor.as_mut().unwrap().select_from(1);
     c.editor.as_mut().unwrap().selection.to_code = 43;
     c.edit().unwrap();
     c
@@ -595,7 +599,7 @@ fn detached_draft_can_navigate_but_never_dispatches_a_trial_or_calibration() {
     let requests = c.port.requests.len();
     let mut board = KeyboardState::default();
     assert!(board.click(c.editor.as_mut().unwrap(), 2, false, false, false));
-    assert_eq!(c.editor.as_ref().unwrap().selection.from, 2);
+    assert_eq!(c.editor.as_ref().unwrap().selection.from, Some(2));
     assert!(c.trial("backup".into()).is_err());
     assert!(c.begin("backup".into(), Activation::Pointer).is_err());
     assert_eq!(c.port.requests.len(), requests);

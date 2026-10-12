@@ -7,8 +7,8 @@ pub enum Mode {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Selection {
     pub layer: usize,
-    pub from: usize,
-    pub to_position: usize,
+    pub from: Option<usize>,
+    pub to_position: Option<usize>,
     pub to_code: u8,
     pub mode: Mode,
 }
@@ -16,8 +16,8 @@ impl Default for Selection {
     fn default() -> Self {
         Self {
             layer: 0,
-            from: 1,
-            to_position: 2,
+            from: None,
+            to_position: None,
             to_code: 15,
             mode: Mode::Reassign,
         }
@@ -51,12 +51,24 @@ impl Editor {
     }
     /// Selecting a slot opens its current draft setting without changing raw records or history.
     pub fn select_from(&mut self, slot: usize) -> bool {
-        if slot >= 66 || self.selection.from == slot {
+        if slot >= 66 || self.selection.from == Some(slot) {
             return false;
         }
-        self.selection.from = slot;
+        self.selection.from = Some(slot);
         self.load_selected_output();
         true
+    }
+    pub fn toggle_from(&mut self, slot: usize) -> bool {
+        if slot >= 66 {
+            return false;
+        }
+        if self.selection.from == Some(slot) {
+            self.selection.from = None;
+            self.output_ready = false;
+            true
+        } else {
+            self.select_from(slot)
+        }
     }
     pub fn select_layer(&mut self, layer: usize) -> bool {
         if layer >= 3 || layer >= self.draft.group_count() || self.selection.layer == layer {
@@ -68,9 +80,10 @@ impl Editor {
     }
     fn load_selected_output(&mut self) {
         self.output_ready = false;
-        if let Ok(definition) = self
-            .draft
-            .definition(self.selection.layer * 66 + self.selection.from)
+        let Some(from) = self.selection.from else {
+            return;
+        };
+        if let Ok(definition) = self.draft.definition(self.selection.layer * 66 + from)
             && definition.kind == 0
             && let [code] = definition.keys.as_slice()
             && selectable_output(*code)
@@ -89,6 +102,9 @@ impl Editor {
         self.output_ready
     }
     pub fn proposed(&self) -> Result<Profile, String> {
+        if self.selection.from.is_none() {
+            return Err("Select a physical key first".into());
+        }
         if self.selection.mode == Mode::Reassign && !self.output_ready {
             return Err(
                 "The current action is preserved. Choose an output explicitly to replace it."
@@ -107,8 +123,10 @@ impl Editor {
     /// Record transitions reopen the selected setting only when its raw data changed.
     /// Unrelated edits leave a pending output choice intact.
     fn replace_draft(&mut self, p: Profile) {
-        let index = self.selection.layer * 66 + self.selection.from;
-        let selected_changed = self.draft.records.get(index) != p.records.get(index);
+        let selected_changed = self.selection.from.is_some_and(|from| {
+            let index = self.selection.layer * 66 + from;
+            self.draft.records.get(index) != p.records.get(index)
+        });
         self.draft = p;
         if selected_changed {
             self.load_selected_output();
@@ -162,11 +180,14 @@ fn selectable_output(code: u8) -> bool {
     (1..=74).contains(&code) || [156, 166].contains(&code)
 }
 pub fn regenerate(p: &Profile, s: Selection) -> Result<Profile, String> {
-    if s.layer >= 3 || s.from >= 66 || (s.mode == Mode::Swap && s.to_position >= 66) {
+    let Some(from_position) = s.from.filter(|&position| position < 66) else {
+        return Err("Select a physical key on one of the three layers".into());
+    };
+    if s.layer >= 3 || (s.mode == Mode::Swap && !s.to_position.is_some_and(|p| p < 66)) {
         return Err("Select a physical key on one of the three layers".into());
     }
     let mut draft = p.clone();
-    let from = s.layer * 66 + s.from;
+    let from = s.layer * 66 + from_position;
     match s.mode {
         Mode::Reassign => {
             if !((1..=177).contains(&s.to_code) || s.to_code == 199) {
@@ -187,7 +208,7 @@ pub fn regenerate(p: &Profile, s: Selection) -> Result<Profile, String> {
                 .map_err(|e| e.to_string())?;
         }
         Mode::Swap => draft
-            .swap_keys(from, s.layer * 66 + s.to_position)
+            .swap_keys(from, s.layer * 66 + s.to_position.unwrap())
             .map_err(|e| e.to_string())?,
     }
     draft
@@ -228,12 +249,15 @@ pub fn exact_trial(baseline: &Profile, draft: &Profile, s: Selection) -> Result<
         );
     }
     baseline.differences(draft).map_err(|e| e.to_string())?;
-    if s.layer >= 3 || s.from >= 66 || (s.mode == Mode::Swap && s.to_position >= 66) {
+    if s.layer >= 3
+        || !s.from.is_some_and(|p| p < 66)
+        || (s.mode == Mode::Swap && !s.to_position.is_some_and(|p| p < 66))
+    {
         return Err("Invalid physical selection".into());
     }
-    let mut indices = vec![s.layer * 66 + s.from];
+    let mut indices = vec![s.layer * 66 + s.from.unwrap()];
     if s.mode == Mode::Swap {
-        indices.push(s.layer * 66 + s.to_position);
+        indices.push(s.layer * 66 + s.to_position.unwrap());
     } else if !(1..=74).contains(&s.to_code) {
         return Err("Hardware trials support only basic output codes 1..74".into());
     }

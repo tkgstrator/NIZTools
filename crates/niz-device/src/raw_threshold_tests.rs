@@ -169,6 +169,144 @@ fn expected_commands() -> Vec<Vec<u8>> {
     vec![fresh_version.to_vec(), getter.to_vec()]
 }
 
+fn calibration_rows() -> Vec<Report> {
+    rows()
+        .into_iter()
+        .map(|mut report| {
+            report[3] = 2;
+            report
+        })
+        .collect()
+}
+
+fn calibration_replies() -> Vec<std::result::Result<Vec<u8>, String>> {
+    std::iter::once(Ok(version(FIRMWARE)))
+        .chain(
+            calibration_rows()
+                .into_iter()
+                .map(|report| Ok(report.to_vec())),
+        )
+        .collect()
+}
+
+#[test]
+fn calibration_getter_reads_ram_t_with_only_f9_and_dc_mode_two() {
+    let (mut session, state) = session(calibration_replies());
+    let snapshot = session.read_calibration_values().unwrap();
+    assert_eq!(snapshot.identity, identity());
+    assert_eq!(snapshot.firmware, FIRMWARE);
+    assert_eq!(snapshot.raw_reports(), calibration_rows());
+    assert_eq!(snapshot.value_for_position(30), Some(13));
+    assert_eq!(snapshot.value_for_position(31), Some(14));
+    assert_eq!(snapshot.value_for_position(65), Some(59));
+    assert_eq!(snapshot.value_for_position(66), None);
+    let mut expected = expected_commands();
+    expected[1][3] = 2;
+    let state = state.borrow();
+    assert_eq!(state.sent, expected);
+    assert_eq!(state.prepares, 1);
+    assert_eq!(state.queue_probes, 2);
+    assert!(state.sleeps.is_empty());
+    assert_eq!(state.read_timeouts, vec![1000; 12]);
+}
+
+#[test]
+fn calibration_getter_rejects_wrong_mode_and_keeps_evidence_without_retry() {
+    let mut incoming = calibration_replies();
+    incoming[3].as_mut().unwrap()[3] = 1;
+    let expected = incoming[..=3]
+        .iter()
+        .map(|item| item.as_ref().unwrap().clone())
+        .collect::<Vec<_>>();
+    let (mut session, state) = session(incoming);
+    let error = session.read_calibration_values().unwrap_err();
+    assert_eq!(error.raw_reports, expected);
+    assert!(error.message.contains("restoration not confirmed"));
+    assert!(!error.began_write);
+    assert!(session.poisoned);
+    assert!(session.read_calibration_values().is_err());
+    let mut commands = expected_commands();
+    commands[1][3] = 2;
+    assert_eq!(state.borrow().sent, commands);
+    assert_eq!(state.borrow().sleeps.iter().sum::<u64>(), 2000);
+}
+
+#[test]
+fn calibration_getter_rejects_firmware_drift_before_dc() {
+    let incoming = std::iter::once(Ok(version("66EC(XRGB)BLe;V1.0.49;V1.0;")))
+        .chain(
+            calibration_rows()
+                .into_iter()
+                .map(|report| Ok(report.to_vec())),
+        )
+        .collect();
+    let (mut session, state) = session(incoming);
+    let error = session.read_calibration_values().unwrap_err();
+    assert_eq!(
+        error.raw_reports,
+        vec![version("66EC(XRGB)BLe;V1.0.49;V1.0;")]
+    );
+    assert_eq!(state.borrow().sent, vec![expected_commands()[0].clone()]);
+    assert!(state.borrow().sleeps.is_empty());
+}
+
+#[test]
+fn calibration_getter_rejects_excess_input_after_eleven_rows() {
+    let (mut session, state) = session(calibration_replies());
+    let extra = vec![0, 0xdc, 12, 2];
+    state.borrow_mut().queue_after_dc.push_back(extra.clone());
+    let error = session.read_calibration_values().unwrap_err();
+    assert_eq!(error.raw_reports.first(), Some(&version(FIRMWARE)));
+    assert!(error.raw_reports.contains(&extra));
+    assert!(error.message.contains("restoration not confirmed"));
+    assert!(!error.began_write);
+    assert!(session.poisoned);
+    assert_eq!(state.borrow().sleeps.iter().sum::<u64>(), 2000);
+}
+
+#[test]
+fn calibration_getter_short_dc_write_keeps_lock_during_bounded_settle() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = "fake-calibration-value-native-path";
+    let lock = crate::transport::acquire_lock(directory.path(), path).unwrap();
+    let state = Rc::new(RefCell::new(State::default()));
+    {
+        let mut state = state.borrow_mut();
+        state.lock_probe = Some((directory.path().into(), path.into()));
+        state.short_write = Some(2);
+        state.capture_remaining = true;
+    }
+    let mut session = Session::from_transport(
+        Box::new(Fake {
+            state: state.clone(),
+            incoming: calibration_replies().into(),
+            _lock: Some(lock),
+        }),
+        identity(),
+    );
+    let error = session.read_calibration_values().unwrap_err();
+    assert_eq!(error.raw_reports.len(), 12);
+    assert!(error.message.contains("restoration not confirmed"));
+    assert!(!error.began_write);
+    let state = state.borrow();
+    assert_eq!(state.sleeps.iter().sum::<u64>(), 2000);
+    assert!(!state.held_lock_observations.is_empty());
+    assert!(state.held_lock_observations.iter().all(|held| *held));
+    assert_eq!(state.sent.len(), 2);
+    assert_eq!(state.sent[1][3], 2);
+}
+
+#[test]
+fn calibration_getter_uses_one_absolute_deadline() {
+    let (mut session, state) = session(calibration_replies());
+    state.borrow_mut().overrun_read = Some(2);
+    let error = session.read_calibration_values().unwrap_err();
+    assert!(error.message.contains("deadline"));
+    assert!(session.poisoned);
+    assert_eq!(state.borrow().sent.len(), 2);
+    assert_eq!(state.borrow().sleeps.iter().sum::<u64>(), 2000);
+}
+
 #[test]
 fn getter_uses_only_fresh_f9_and_exact_zero_padded_dc_mode_one() {
     let (mut session, state) = session(replies(FIRMWARE));

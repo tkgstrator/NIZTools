@@ -43,6 +43,15 @@ impl KeyboardState {
         if blocked || confirmation || popup || slot >= 66 {
             return false;
         }
+        if editor.selection.from == Some(slot) {
+            editor.toggle_from(slot);
+            self.target = ClickTarget::From;
+            return true;
+        }
+        if editor.selection.mode == Mode::Swap && editor.selection.to_position == Some(slot) {
+            editor.selection.to_position = None;
+            return true;
+        }
         match (editor.selection.mode, self.target) {
             (Mode::Reassign, _) => editor.select_from(slot),
             (Mode::Swap, ClickTarget::From) => {
@@ -51,12 +60,8 @@ impl KeyboardState {
                 true
             }
             (Mode::Swap, ClickTarget::To) => {
-                if editor.selection.to_position == slot {
-                    false
-                } else {
-                    editor.selection.to_position = slot;
-                    true
-                }
+                editor.selection.to_position = Some(slot);
+                true
             }
         }
     }
@@ -232,8 +237,8 @@ pub fn key_view(editor: &Editor, slot: usize) -> KeyView {
             }
         ),
         changed,
-        is_from: editor.selection.from == slot,
-        is_to: editor.selection.mode == Mode::Swap && editor.selection.to_position == slot,
+        is_from: editor.selection.from == Some(slot),
+        is_to: editor.selection.mode == Mode::Swap && editor.selection.to_position == Some(slot),
     }
 }
 
@@ -403,7 +408,11 @@ fn compact_legend(slot: usize) -> &'static str {
         legend => legend,
     }
 }
-pub(crate) fn show_physical(ui: &mut egui::Ui, selected: usize, blocked: bool) -> Option<usize> {
+pub(crate) fn show_physical(
+    ui: &mut egui::Ui,
+    selected: Option<usize>,
+    blocked: bool,
+) -> Option<usize> {
     let palette = Palette::of(ui);
     let width = ui.available_width();
     let (_, area) = ui.allocate_space(egui::vec2(width, KEY_HEIGHT * 5. + GAP * 4.));
@@ -416,7 +425,7 @@ pub(crate) fn show_physical(ui: &mut egui::Ui, selected: usize, blocked: bool) -
                     area.min + egui::vec2(key.x, row_index as f32 * (KEY_HEIGHT + GAP)),
                     egui::vec2(key.width, KEY_HEIGHT),
                 );
-                let (fill, border, text) = if selected == key.slot {
+                let (fill, border, text) = if selected == Some(key.slot) {
                     (palette.from_fill, palette.from_border, palette.from_text)
                 } else {
                     (palette.control, palette.control_border, palette.text)
@@ -435,7 +444,7 @@ pub(crate) fn show_physical(ui: &mut egui::Ui, selected: usize, blocked: bool) -
                         )
                         .fill(fill)
                         .stroke(egui::Stroke::new(
-                            if selected == key.slot { 1.8 } else { 1. },
+                            if selected == Some(key.slot) { 1.8 } else { 1. },
                             border,
                         ))
                         .corner_radius(5.)

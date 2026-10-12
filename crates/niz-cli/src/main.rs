@@ -39,6 +39,15 @@ enum Commands {
         #[arg(long)]
         capture: Option<PathBuf>,
     },
+    /// Read the exact Atom66 firmware's RAM per-key calibration table.
+    CalibrationValues {
+        #[arg(long)]
+        device: Option<String>,
+        #[arg(long)]
+        json: bool,
+        #[arg(long)]
+        capture: Option<PathBuf>,
+    },
     Backup {
         #[arg(long)]
         device: Option<String>,
@@ -331,6 +340,47 @@ fn run(cli: Cli) -> Result<()> {
                 }
             }
         }
+        Commands::CalibrationValues {
+            device,
+            json: as_json,
+            capture,
+        } => {
+            let path = device_path(device)?;
+            let mut s = Session::open(&path)?;
+            let snapshot = capture_error(s.read_calibration_values(), capture.as_deref())?;
+            if as_json {
+                let reports: Vec<String> = snapshot
+                    .raw_reports()
+                    .iter()
+                    .map(|report| report.iter().map(|byte| format!("{byte:02x}")).collect())
+                    .collect();
+                json(&serde_json::json!({
+                    "device": path,
+                    "identity": snapshot.identity,
+                    "firmware": snapshot.firmware,
+                    "table": "calibration_T_RAM",
+                    "unit": "raw_firmware_signal",
+                    "is_snapshot": true,
+                    "runtime_effects": {
+                        "scanning_pauses_during_read": true,
+                        "active_compensation_restored_from_configured_default": true,
+                        "previous_active_compensation_is_not_preserved": true
+                    },
+                    "values_by_physical_position": snapshot.values().as_slice(),
+                    "reports": reports,
+                    "persistence_verified": false,
+                    "persistent_settings_written": false
+                }))?;
+            } else {
+                println!(
+                    "Device: {path}\nFirmware: {}\nRAM calibration T snapshot; this read alone does not verify saved flash or press travel.\nReading briefly pauses scanning and restores active compensation from its configured default.\nNo persistent settings were written.",
+                    snapshot.firmware
+                );
+                for (position, value) in snapshot.values().iter().enumerate() {
+                    println!("#{:02}\t{value}\t0x{value:02X}", position + 1);
+                }
+            }
+        }
         Commands::Backup {
             device,
             directory,
@@ -567,6 +617,16 @@ mod diagnostic_tests {
         );
         for flag in ["--mode", "--set", "--key", "--threshold"] {
             assert!(Cli::try_parse_from(["niz", "raw-thresholds", flag, "1"]).is_err());
+        }
+    }
+    #[test]
+    fn calibration_values_command_reads_the_fixed_table_without_setter_options() {
+        assert!(
+            Cli::try_parse_from(["niz", "calibration-values", "--device", "device", "--json",])
+                .is_ok()
+        );
+        for flag in ["--mode", "--set", "--key", "--threshold"] {
+            assert!(Cli::try_parse_from(["niz", "calibration-values", flag, "1"]).is_err());
         }
     }
     #[test]
